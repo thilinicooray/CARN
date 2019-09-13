@@ -12,7 +12,6 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
     total_steps = 0
     print_freq = 400
     dev_score_list = []
-    time_all = time.time()
 
     if gpu_mode >= 0 :
         ngpus = 2
