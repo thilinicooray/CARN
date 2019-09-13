@@ -3,9 +3,9 @@ import json
 import os
 
 import sys
-print(sys.path)
+sys.path.append('..')
 
-#from .. import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
+from .. import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 import time
 
 from model import top_down_baseline
