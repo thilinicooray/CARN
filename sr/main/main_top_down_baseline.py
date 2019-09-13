@@ -2,7 +2,7 @@ import torch
 import json
 import os
 import sys
-sys.path.append(".")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from .. import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 import time
