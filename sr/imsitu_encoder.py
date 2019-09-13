@@ -157,6 +157,16 @@ class imsitu_encoder():
     def get_role_count(self, verb_id):
         return len(self.verb2_role_dict[self.verb_list[verb_id]])
 
+    def encode(self, item):
+        verb = self.verb_list.index(item['verb'])
+        labels = self.get_label_ids(item['verb'], item['frames'])
+
+        return verb, labels
+
+    def get_role_ids(self, verb_id):
+
+        return self.verb2role_list[verb_id]
+
     def get_role_ids_batch(self, verbs):
         role_batch_list = []
         q_len = []
@@ -167,12 +177,6 @@ class imsitu_encoder():
 
         return torch.stack(role_batch_list,0)
 
-
-    def encode(self, item):
-        verb = self.verb_list.index(item['verb'])
-        labels = self.get_label_ids(item['verb'], item['frames'])
-
-        return verb, labels
 
     def get_label_ids(self, verb, frames):
         all_frame_id_list = []
