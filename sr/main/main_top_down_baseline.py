@@ -1,13 +1,11 @@
 import torch
 import json
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from .. import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
+#from .. import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 import time
 
-from ..model import top_down_baseline
+from model import top_down_baseline
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
