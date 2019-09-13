@@ -22,8 +22,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
         pmodel = model
     #pmodel = model
 
-    top1 = imsitu_scorer(encoder, 1, 3)
-    top5 = imsitu_scorer(encoder, 5, 3)
+    top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
+    top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
     for epoch in range(max_epoch):
 
@@ -87,8 +87,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
                 print('current train loss', train_loss)
                 train_loss = 0
-                top1 = imsitu_scorer(encoder, 1, 3)
-                top5 = imsitu_scorer(encoder, 5, 3)
+                top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
+                top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
             del role_predict, loss, img, verb, labels
         print('Epoch ', epoch, ' completed!')
@@ -98,8 +98,8 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
     print ('evaluating model...')
-    top1 = imsitu_scorer(encoder, 1, 3, write_to_file)
-    top5 = imsitu_scorer(encoder, 5, 3)
+    top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
+    top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
         for i, (img_id, img, verb, labels) in enumerate(dev_loader):

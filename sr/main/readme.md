@@ -1,0 +1,1 @@
+Please copy the main file you want to run to the root folder before you run.
