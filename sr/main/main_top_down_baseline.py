@@ -1,6 +1,9 @@
 import torch
 import json
 import os
+import sys
+sys.path.append(".")
+
 from .. import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 import time
 
