@@ -3,8 +3,6 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
-import time
-
 from sr.model import top_down_baseline
 
 
