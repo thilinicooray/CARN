@@ -1,12 +1,5 @@
 import torch
-import random
-from collections import OrderedDict
-import csv
-import nltk
 import torchvision as tv
-import json
-import utils
-import numpy as np
 
 #This is the class which encodes training set json in the following structure
 #todo: the structure
