@@ -63,7 +63,7 @@ class GGNN(nn.Module):
             neighbours = neighbours.transpose(0,1)
             print('neighbours second', neighbours.size(), neighbours[0,0,:,:5], mask[0,0])
 
-            neighbours = neighbours * mask
+            neighbours = neighbours * mask.unsqueeze(-1)
             print('masked neighbours ', neighbours[0,0,:,:5])
             neighbours = self.W_p(neighbours)
             neighbours = torch.sum(neighbours, 2)
