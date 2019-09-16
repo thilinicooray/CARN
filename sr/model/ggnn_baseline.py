@@ -57,7 +57,7 @@ class GGNN(nn.Module):
 
         for t in range(self.n_steps):
             # calculating neighbour info
-            neighbours = hidden_state.view(mask.size(0), self.n_node, -1)
+            neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
             print('neighbours first', neighbours.size(), mask.size())
             neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
             neighbours = neighbours.transpose(0,1)
@@ -68,7 +68,7 @@ class GGNN(nn.Module):
             neighbours = self.W_p(neighbours)
             neighbours = torch.sum(neighbours, 2)
             print('masked summed neighbours ', neighbours.size())
-            neighbours = neighbours.view(mask.size(0)*self.n_node, -1)
+            neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
             print('neighbours + self ', neighbours.size(), hidden_state.size())
 
             #applying gating
@@ -115,7 +115,7 @@ class GGNN_Baseline(nn.Module):
 
         verb_embed_expand = verb_embd.expand(self.encoder.max_role_count, verb_embd.size(0), verb_embd.size(1))
         verb_embed_expand = verb_embed_expand.transpose(0,1)
-        verb_embed_expand = verb_embed_expand.view(batch_size * self.encoder.max_role_count, -1)
+        verb_embed_expand = verb_embed_expand.contiguous().view(batch_size * self.encoder.max_role_count, -1)
 
         input2ggnn = img * role_embd * verb_embed_expand
 
