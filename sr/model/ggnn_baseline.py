@@ -57,8 +57,11 @@ class GGNN(nn.Module):
 
         for t in range(self.n_steps):
             # calculating neighbour info
+
+            print('beginning ', hidden_state.size(), hidden_state[:6, :5])
+
             neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
-            print('neighbours first', neighbours.size(), mask.size())
+            print('neighbours first', neighbours.size(), mask.size(), neighbours[0,:,:5])
             neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
             neighbours = neighbours.transpose(0,1)
             print('neighbours second', neighbours.size(), neighbours[0,0,:,:5], mask[0,0])
