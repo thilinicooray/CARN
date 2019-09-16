@@ -57,22 +57,14 @@ class GGNN(nn.Module):
 
         for t in range(self.n_steps):
             # calculating neighbour info
-
-            print('beginning ', hidden_state.size(), hidden_state[:6, :5])
-
             neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
-            print('neighbours first', neighbours.size(), mask.size(), neighbours[0,:,:5])
             neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
             neighbours = neighbours.transpose(0,1)
-            print('neighbours second', neighbours.size(), neighbours[0,0,:,:5], mask[0,0])
 
             neighbours = neighbours * mask.unsqueeze(-1)
-            print('masked neighbours ', neighbours[0,0,:,:5])
             neighbours = self.W_p(neighbours)
             neighbours = torch.sum(neighbours, 2)
-            print('masked summed neighbours ', neighbours.size())
             neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
-            print('neighbours + self ', neighbours.size(), hidden_state.size())
 
             #applying gating
             z_t = torch.sigmoid(self.W_z(neighbours) + self.U_z(hidden_state))
