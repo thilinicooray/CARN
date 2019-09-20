@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
-from sr.model import ggnn_baseline
+from sr.model import top_down_baseline
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -145,7 +145,7 @@ def main():
     parser.add_argument('--model_saving_name', type=str, help='saving name of the outpul model')
 
     parser.add_argument('--epochs', type=int, default=500)
-    parser.add_argument('--model', type=str, default='ggnn_baseline')
+    parser.add_argument('--model', type=str, default='top_down_visual_context_only_baseline')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=1111, help='random seed')
     parser.add_argument('--clip_norm', type=float, default=0.25)
@@ -168,7 +168,7 @@ def main():
     train_set = imsitu_loader.imsitu_loader(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
     constructor = 'build_%s' % args.model
-    model = getattr(ggnn_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
+    model = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
@@ -206,7 +206,11 @@ def main():
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
-            {'params': model.ggnn.parameters()},
+            {'params': model.query_composer.parameters()},
+            {'params': model.v_att.parameters()},
+            {'params': model.q_net.parameters()},
+            {'params': model.v_net.parameters()},
+            {'params': model.resize_ctx.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
