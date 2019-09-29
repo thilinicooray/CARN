@@ -76,34 +76,36 @@ class Top_Down_With_Pair_Rf(nn.Module):
         #pairwise context generator
         all_roles = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        print('all_roles ', all_roles[0,:,:5])
-
         required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
 
         updated_roles = None
 
         for rolei in range(self.encoder.max_role_count):
             current_indices = required_indices[rolei]
-            print('current_indices ', current_indices)
-
             current_indices = torch.tensor(current_indices)
             if torch.cuda.is_available():
                 current_indices = current_indices.to(torch.device('cuda'))
 
             neighbours = torch.index_select(all_roles, 1, current_indices)
-            print('neighbours ', neighbours.size(), rolei, neighbours[0,:,:5])
 
             current_role = all_roles[:,rolei]
 
-            conv1 = neighbours.unsqueeze(1).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
-            conv2 = neighbours.unsqueeze(2).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
-            conv1 = conv1.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
-            conv2 = conv2.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
-            print('conv2', conv2.size(), current_role.size())
+            neighbours1 = neighbours.unsqueeze(1).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
+            neighbours2 = neighbours.unsqueeze(2).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
+            neighbours1 = neighbours1.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
+            neighbours2 = neighbours2.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
 
-            concat_vec = torch.cat([conv1, conv2, current_role], 2).view(-1, current_role.size(-1)*3)
+            current_role_expanded = current_role.expand((self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(0), current_role.size(1))
+            current_role_expanded = current_role_expanded.transpose(0,1)
+
+            print('current_role_expanded', current_role_expanded.size())
+
+            concat_vec = torch.cat([neighbours1, neighbours2, current_role_expanded], 2).view(-1, current_role.size(-1)*3)
+            print('concat_vec', concat_vec.size())
             pairwise_compared = self.pairwise_comparator(concat_vec)
+            print('pairwise_compared', pairwise_compared.size())
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
+            print('context', context.size())
 
             #gate to decide which amount should be used from current role
             gate = torch.sigmoid(context * current_role)
