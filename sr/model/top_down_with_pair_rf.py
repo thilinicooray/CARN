@@ -111,7 +111,6 @@ class Top_Down_With_Pair_Rf(nn.Module):
             else:
                 updated_roles = torch.cat((updated_roles.clone(), current_out.unsqueeze(1)), 1)
 
-        print('updated_roles', updated_roles.size())
         final_out = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
         logits = self.classifier(final_out)
 
