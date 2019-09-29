@@ -149,9 +149,9 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     pairwise_comparator = nn.Sequential(
-        nn.Linear(hidden_size*3, hidden_size),
+        nn.Linear(hidden_size*3, hidden_size//2),
         nn.ReLU(),
-        nn.Linear(hidden_size, hidden_size),
+        nn.Linear(hidden_size//2, hidden_size),
         nn.ReLU(),
     )
 
