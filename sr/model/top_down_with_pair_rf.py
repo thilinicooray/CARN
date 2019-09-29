@@ -98,23 +98,18 @@ class Top_Down_With_Pair_Rf(nn.Module):
             current_role_expanded = current_role.expand((self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(0), current_role.size(1))
             current_role_expanded = current_role_expanded.transpose(0,1)
 
-            print('current_role_expanded', current_role_expanded.size())
-
             concat_vec = torch.cat([neighbours1, neighbours2, current_role_expanded], 2).view(-1, current_role.size(-1)*3)
-            print('concat_vec', concat_vec.size())
             pairwise_compared = self.pairwise_comparator(concat_vec)
-            print('pairwise_compared', pairwise_compared.size())
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
-            print('context', context.size())
 
             #gate to decide which amount should be used from current role
             gate = torch.sigmoid(context * current_role)
             current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
-                updated_roles = current_out
+                updated_roles = current_out.unsqueeze(1)
             else:
-                updated_roles = torch.cat((updated_roles.clone(), current_out), 1)
+                updated_roles = torch.cat((updated_roles.clone(), current_out.unsqueeze(1)), 1)
 
         print('updated_roles', updated_roles.size())
         final_out = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
