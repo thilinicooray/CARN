@@ -155,7 +155,7 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
         nn.ReLU(),
     )
 
-    Dropout_C = nn.Dropout(0.1)
+    Dropout_C = nn.Dropout(0.2)
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
