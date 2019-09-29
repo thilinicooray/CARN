@@ -22,7 +22,7 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_With_Pair_Rf(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, pairwise_comparator, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, pairwise_comparator, classifier, encoder, Dropout_C):
         super(Top_Down_With_Pair_Rf, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -34,6 +34,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
         self.pairwise_comparator = pairwise_comparator
         self.classifier = classifier
         self.encoder = encoder
+        self.dropout = Dropout_C
 
     def forward(self, v_org, gt_verb):
 
@@ -99,7 +100,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
             current_role_expanded = current_role_expanded.transpose(0,1)
 
             concat_vec = torch.cat([neighbours1, neighbours2, current_role_expanded], 2).view(-1, current_role.size(-1)*3)
-            pairwise_compared = self.pairwise_comparator(concat_vec)
+            pairwise_compared = self.dropout(self.pairwise_comparator(concat_vec))
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
             #gate to decide which amount should be used from current role
@@ -153,10 +154,12 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
         nn.Linear(hidden_size, hidden_size),
         nn.ReLU(),
     )
+
+    Dropout_C = nn.Dropout(0.1)
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_With_Pair_Rf(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, pairwise_comparator, classifier, encoder)
+                             v_net, pairwise_comparator, classifier, encoder, Dropout_C)
 
 
