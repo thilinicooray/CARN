@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision as tv
+from torch.nn.utils.weight_norm import weight_norm
 
 from ..lib.attention import Attention
 from ..lib.classifier import SimpleClassifier
@@ -164,11 +165,9 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     pairwise_comparator = nn.Sequential(
-        nn.Linear(hidden_size*3, hidden_size//2),
-        nn.BatchNorm1d(hidden_size//2),
+        weight_norm(nn.Linear(hidden_size*3, hidden_size//2), dim=None),
         nn.ReLU(),
-        nn.Linear(hidden_size//2, hidden_size),
-        nn.BatchNorm1d(hidden_size),
+        weight_norm(nn.Linear(hidden_size//2, hidden_size), dim=None),
         nn.ReLU(),
     )
 
