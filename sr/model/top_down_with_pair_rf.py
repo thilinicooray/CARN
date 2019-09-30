@@ -1,14 +1,16 @@
 '''
-reasoner - tob-down baseline
+reasoner - top-down baseline
 fusioner - pairwise only
 '''
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import torchvision as tv
+
 from ..lib.attention import Attention
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
-import torchvision as tv
 from ..utils import cross_entropy_loss
 
 class vgg16_modified(nn.Module):
@@ -67,15 +69,25 @@ class Top_Down_With_Pair_Rf(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
 
+        print('img val ', img[0,:2,:10])
+        print('q val ', q_emb[0,:10])
+
         att = self.v_att(img, q_emb)
         v_emb = (att * img).sum(1)
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
         out = torch.mul(q_repr, v_repr)
+        print('out val ', out[0,:10])
+
+        #normalization as a data range of a multiplication can be really large
+        iq_drop = self.dropout(out)
+        iq_sign_sqrt = torch.sqrt(F.relu(iq_drop)) - torch.sqrt(F.relu(-iq_drop))
+        iq_l2 = F.normalize(iq_sign_sqrt)
+        print('out normalized ', iq_l2[0,:10])
 
         #pairwise context generator
-        all_roles = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+        all_roles = iq_l2.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
 
@@ -103,8 +115,11 @@ class Top_Down_With_Pair_Rf(nn.Module):
             pairwise_compared = self.pairwise_comparator(concat_vec)
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
+            print('context ', context[0,:10])
+            a = context * current_role
+            print('context* cu role ', a[0,:10])
             #gate to decide which amount should be used from current role
-            gate = torch.sigmoid(context * current_role)
+            gate = torch.sigmoid(a)
             current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
