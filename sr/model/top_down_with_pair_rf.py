@@ -69,16 +69,12 @@ class Top_Down_With_Pair_Rf(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
 
-        print('img val ', img[0,:2,:10])
-        print('q val ', q_emb[0,:10])
-
         att = self.v_att(img, q_emb)
         v_emb = (att * img).sum(1)
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
         out = torch.mul(q_repr, v_repr)
-        print('out val ', out[0,:10])
 
         #normalization as a data range of a multiplication can be really large
         iq_drop = self.dropout(out)
@@ -120,6 +116,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
             print('context* cu role ', a[0,:10])
             #gate to decide which amount should be used from current role
             gate = torch.sigmoid(a)
+            print('gate ', gate[0,:10])
             current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
