@@ -130,6 +130,8 @@ class Top_Down_With_Pair_Rf(nn.Module):
         final_out = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
         logits = self.classifier(final_out)
 
+        print('logits :', logits)
+
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         return role_label_pred

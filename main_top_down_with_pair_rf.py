@@ -48,12 +48,12 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
             optimizer.step()
 
-            print('grad check :')
+            '''print('grad check :')
             for f in model.pairwise_comparator.parameters():
                 print('weight is')
                 print(f.data[:10])
                 print('grad is')
-                print(f.grad[:10])
+                print(f.grad[:10])'''
 
             optimizer.zero_grad()
 
@@ -220,7 +220,7 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.pairwise_comparator.parameters()},
             {'params': model.classifier.parameters()}
-        ], lr=1e-3)
+        ], lr=1e-3, weight_decay=1e-4)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
