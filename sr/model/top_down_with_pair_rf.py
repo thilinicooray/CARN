@@ -100,7 +100,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
             current_role_expanded = current_role_expanded.transpose(0,1)
 
             concat_vec = torch.cat([neighbours1, neighbours2, current_role_expanded], 2).view(-1, current_role.size(-1)*3)
-            pairwise_compared = self.dropout(self.pairwise_comparator(concat_vec))
+            pairwise_compared = self.pairwise_comparator(concat_vec)
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
             #gate to decide which amount should be used from current role
