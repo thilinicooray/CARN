@@ -113,14 +113,14 @@ class Top_Down_With_Pair_Rf(nn.Module):
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
             #print('context ', context[0,:10])
-            #joint = torch.mul(context, current_role)
-            joint = context * current_role
-            #joint_drop = self.dropout(joint)
-            #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
-            #joint_l2 = F.normalize(joint_sign_sqrt)
+            joint = torch.mul(context, current_role)
+            #joint = context * current_role
+            joint_drop = self.dropout(joint)
+            joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
+            joint_l2 = F.normalize(joint_sign_sqrt)
             #print('joint_l2 ', joint_l2[0,:10])
             #gate to decide which amount should be used from current role
-            gate = torch.sigmoid(joint)
+            gate = torch.sigmoid(joint_l2)
             #print('gate ', gate[0,:10])
             current_out = gate * current_role + (1-gate) * context
 
