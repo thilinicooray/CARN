@@ -111,12 +111,12 @@ class Top_Down_With_Pair_Rf(nn.Module):
             pairwise_compared = self.pairwise_comparator(concat_vec)
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
-            print('context ', context[0,:10])
+            #print('context ', context[0,:10])
             a = context * current_role
-            print('context* cu role ', a[0,:10])
+            #print('context* cu role ', a[0,:10])
             #gate to decide which amount should be used from current role
             gate = torch.sigmoid(a)
-            print('gate ', gate[0,:10])
+            #print('gate ', gate[0,:10])
             current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
