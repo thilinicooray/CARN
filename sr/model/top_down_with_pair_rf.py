@@ -113,7 +113,8 @@ class Top_Down_With_Pair_Rf(nn.Module):
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
             #print('context ', context[0,:10])
-            joint = torch.mul(context, current_role)
+            #joint = torch.mul(context, current_role)
+            joint = context * current_role
             #joint_drop = self.dropout(joint)
             #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
             #joint_l2 = F.normalize(joint_sign_sqrt)
@@ -165,9 +166,9 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     pairwise_comparator = nn.Sequential(
-        weight_norm(nn.Linear(hidden_size*3, hidden_size//2), dim=None),
+        nn.Linear(hidden_size*3, hidden_size//2),
         nn.ReLU(),
-        weight_norm(nn.Linear(hidden_size//2, hidden_size), dim=None),
+        nn.Linear(hidden_size//2, hidden_size),
         nn.ReLU(),
     )
 
