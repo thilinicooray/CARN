@@ -47,6 +47,14 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_norm)
 
             optimizer.step()
+
+            print('grad check :')
+            for f in model.pairwise_comparator.parameters():
+                print('weight is')
+                print(f.data)
+                print('grad is')
+                print(f.grad)
+
             optimizer.zero_grad()
 
             train_loss += loss.item()
