@@ -130,8 +130,6 @@ class Top_Down_With_Pair_Rf(nn.Module):
         final_out = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
         logits = self.classifier(final_out)
 
-        print('logits :', logits)
-
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         return role_label_pred
@@ -169,7 +167,6 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
         nn.Linear(hidden_size*3, hidden_size//2),
         nn.ReLU(),
         nn.Linear(hidden_size//2, hidden_size),
-        nn.ReLU(),
     )
 
     Dropout_C = nn.Dropout(0.2)
