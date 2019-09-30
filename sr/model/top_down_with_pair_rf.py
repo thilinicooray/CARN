@@ -165,8 +165,11 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     v_net = FCNet([img_embedding_size, hidden_size])
     pairwise_comparator = nn.Sequential(
         nn.Linear(hidden_size*3, hidden_size//2),
+        nn.BatchNorm1d(hidden_size//2),
         nn.ReLU(),
         nn.Linear(hidden_size//2, hidden_size),
+        nn.BatchNorm1d(hidden_size),
+        nn.ReLU(),
     )
 
     Dropout_C = nn.Dropout(0.2)
