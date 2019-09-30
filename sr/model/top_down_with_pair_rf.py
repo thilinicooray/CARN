@@ -114,12 +114,12 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             #print('context ', context[0,:10])
             joint = torch.mul(context, current_role)
-            joint_drop = self.dropout(joint)
-            joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
-            joint_l2 = F.normalize(joint_sign_sqrt)
+            #joint_drop = self.dropout(joint)
+            #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
+            #joint_l2 = F.normalize(joint_sign_sqrt)
             #print('joint_l2 ', joint_l2[0,:10])
             #gate to decide which amount should be used from current role
-            gate = torch.sigmoid(joint_l2)
+            gate = torch.sigmoid(joint)
             #print('gate ', gate[0,:10])
             current_out = gate * current_role + (1-gate) * context
 
