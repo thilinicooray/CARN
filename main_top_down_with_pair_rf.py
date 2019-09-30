@@ -48,13 +48,6 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
             optimizer.step()
 
-            print('grad check :')
-            for f in model.pairwise_comparator.parameters():
-                print('weight is')
-                print(f.data)
-                print('grad is')
-                print(f.grad)
-
             optimizer.zero_grad()
 
             train_loss += loss.item()
