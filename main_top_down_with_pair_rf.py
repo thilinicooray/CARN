@@ -212,6 +212,7 @@ def main():
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
             {'params': model.pairwise_comparator.parameters()},
+            {'params': model.resize_img_flat.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
