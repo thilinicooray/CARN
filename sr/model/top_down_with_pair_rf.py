@@ -113,21 +113,21 @@ class Top_Down_With_Pair_Rf(nn.Module):
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
             #print('context ', context[0,:10])
-            joint = torch.mul(context, current_role)
+            #joint = torch.mul(context, current_role)
             #joint = context * current_role
-            joint_drop = self.dropout(joint)
-            joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
-            joint_l2 = F.normalize(joint_sign_sqrt)
+            #joint_drop = self.dropout(joint)
+            #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
+            #joint_l2 = F.normalize(joint_sign_sqrt)
             #print('joint_l2 ', joint_l2[0,:10])
             #gate to decide which amount should be used from current role
-            gate = torch.sigmoid(joint_l2)
+            #gate = torch.sigmoid(joint)
             #print('gate ', gate[0,:10])
-            current_out = gate * current_role + (1-gate) * context
+            #current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
-                updated_roles = current_out.unsqueeze(1)
+                updated_roles = context.unsqueeze(1)
             else:
-                updated_roles = torch.cat((updated_roles.clone(), current_out.unsqueeze(1)), 1)
+                updated_roles = torch.cat((updated_roles.clone(), context.unsqueeze(1)), 1)
 
         final_out = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
         logits = self.classifier(final_out)
