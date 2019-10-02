@@ -25,7 +25,7 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_With_Pair_Rf(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, pairwise_comparator, classifier, encoder, Dropout_C):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, pairwise_comparator, resize_img_flat, classifier, encoder, Dropout_C):
         super(Top_Down_With_Pair_Rf, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -38,10 +38,13 @@ class Top_Down_With_Pair_Rf(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
         self.dropout = Dropout_C
+        self.resize_img_flat = resize_img_flat
 
     def forward(self, v_org, gt_verb):
 
         img_features = self.convnet(v_org)
+        img_feat_flat = img_features.view(-1, 512*7*7)
+        img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
@@ -60,6 +63,11 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
+
+        img_feat_flat = img_feat_flat.expand(self.encoder.max_role_count, img_feat_flat.size(0), img_feat_flat.size(1))
+
+        img_feat_flat = img_feat_flat.transpose(0,1)
+        img_feat_flat = img_feat_flat.contiguous().view(batch_size * self.encoder.max_role_count, -1)
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -114,7 +122,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             #print('context ', context[0,:10])
             #joint = torch.mul(context, current_role)
-            #joint = context * current_role
+            joint =  current_role + (img_feat_flat * context)
             #joint_drop = self.dropout(joint)
             #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
             #joint_l2 = F.normalize(joint_sign_sqrt)
@@ -125,9 +133,9 @@ class Top_Down_With_Pair_Rf(nn.Module):
             #current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
-                updated_roles = context.unsqueeze(1)
+                updated_roles = joint.unsqueeze(1)
             else:
-                updated_roles = torch.cat((updated_roles.clone(), context.unsqueeze(1)), 1)
+                updated_roles = torch.cat((updated_roles.clone(), joint.unsqueeze(1)), 1)
 
         final_out = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
         logits = self.classifier(final_out)
@@ -173,10 +181,14 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     )
 
     Dropout_C = nn.Dropout(0.2)
+    resize_img_flat = nn.Sequential(
+        nn.Linear(img_embedding_size * 7 * 7, hidden_size),
+        nn.ReLU()
+    )
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_With_Pair_Rf(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, pairwise_comparator, classifier, encoder, Dropout_C)
+                             v_net, pairwise_comparator, resize_img_flat, classifier, encoder, Dropout_C)
 
 
