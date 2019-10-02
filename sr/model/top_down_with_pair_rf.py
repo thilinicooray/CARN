@@ -64,11 +64,6 @@ class Top_Down_With_Pair_Rf(nn.Module):
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
 
-        img_feat_flat = img_feat_flat.expand(self.encoder.max_role_count, img_feat_flat.size(0), img_feat_flat.size(1))
-
-        img_feat_flat = img_feat_flat.transpose(0,1)
-        img_feat_flat = img_feat_flat.contiguous().view(batch_size * self.encoder.max_role_count, -1)
-
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
 
