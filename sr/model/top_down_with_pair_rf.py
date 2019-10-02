@@ -78,13 +78,13 @@ class Top_Down_With_Pair_Rf(nn.Module):
         out = torch.mul(q_repr, v_repr)
 
         #normalization as a data range of a multiplication can be really large
-        iq_drop = self.dropout(out)
+        '''iq_drop = self.dropout(out)
         iq_sign_sqrt = torch.sqrt(F.relu(iq_drop)) - torch.sqrt(F.relu(-iq_drop))
-        iq_l2 = F.normalize(iq_sign_sqrt)
+        iq_l2 = F.normalize(iq_sign_sqrt)'''
         #print('out normalized ', iq_l2[0,:10])
 
         #pairwise context generator
-        all_roles = iq_l2.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+        all_roles = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
 
