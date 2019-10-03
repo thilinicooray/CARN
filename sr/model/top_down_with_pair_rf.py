@@ -78,7 +78,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        out = torch.mul(q_repr, v_repr)
+        out = q_repr * v_repr
 
         #normalization as a data range of a multiplication can be really large
         '''iq_drop = self.dropout(out)
@@ -178,7 +178,8 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     Dropout_C = nn.Dropout(0.2)
     resize_img_flat = nn.Sequential(
         nn.Linear(img_embedding_size * 7 * 7, hidden_size),
-        nn.ReLU()
+        nn.ReLU(),
+        nn.Dropout(0.1)
     )
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
