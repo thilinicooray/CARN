@@ -176,7 +176,10 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     pairwise_comparator = FCNet([hidden_size*3, hidden_size ])
 
     Dropout_C = nn.Dropout(0.2)
-    fusioner = nn.Linear(hidden_size*2, hidden_size)
+    fusioner = nn.Sequential(
+        nn.Linear(hidden_size*2, hidden_size),
+        nn.ReLU(),
+    )
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
