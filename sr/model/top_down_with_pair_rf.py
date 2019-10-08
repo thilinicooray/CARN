@@ -115,7 +115,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             #print('context ', context[0,:10])
             #joint = torch.mul(context, current_role)
-            joint = self.fusioner(torch.cat([current_role, context],-1))
+            joint = current_role * context
             #joint_drop = self.dropout(joint)
             #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
             #joint_l2 = F.normalize(joint_sign_sqrt)
