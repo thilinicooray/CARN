@@ -115,7 +115,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             #print('context ', context[0,:10])
             #joint = torch.mul(context, current_role)
-            joint = current_role * context
+            joint = self.fusioner(torch.cat([current_role, context],-1))
             #joint_drop = self.dropout(joint)
             #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
             #joint_l2 = F.normalize(joint_sign_sqrt)
@@ -176,7 +176,7 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     pairwise_comparator = FCNet([hidden_size*3, hidden_size ])
 
     Dropout_C = nn.Dropout(0.2)
-    fusioner = FCNet([hidden_size*2, hidden_size ])
+    fusioner = nn.Linear(hidden_size*2, hidden_size)
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
