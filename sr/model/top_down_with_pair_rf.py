@@ -113,9 +113,10 @@ class Top_Down_With_Pair_Rf(nn.Module):
             pairwise_compared = self.pairwise_comparator(concat_vec)
             context = pairwise_compared.view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1)).sum(1).squeeze()
 
+            joint = context
             #print('context ', context[0,:10])
             #joint = torch.mul(context, current_role)
-            joint = self.fusioner(torch.cat([current_role, context],-1))
+            #joint = self.fusioner(torch.cat([current_role, context],-1))
             #joint_drop = self.dropout(joint)
             #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
             #joint_l2 = F.normalize(joint_sign_sqrt)
