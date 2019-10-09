@@ -213,6 +213,7 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.pairwise_comparator.parameters()},
             {'params': model.fusioner.parameters()},
+            {'params': model.fusioner_proj.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
