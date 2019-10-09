@@ -25,7 +25,7 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_With_Pair_Rf(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, pairwise_comparator, fusioner, classifier, encoder, Dropout_C):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_att, classifier, encoder, Dropout_C):
         super(Top_Down_With_Pair_Rf, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -34,8 +34,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
         self.v_att = v_att
         self.q_net = q_net
         self.v_net = v_net
-        self.pairwise_comparator = pairwise_comparator
-        self.fusioner = fusioner
+        self.neighbour_att = neighbour_att
         self.classifier = classifier
         self.encoder = encoder
         self.dropout = Dropout_C
@@ -101,34 +100,10 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             current_role = all_roles[:,rolei]
 
-            neighbours1 = neighbours.unsqueeze(1).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
-            neighbours2 = neighbours.unsqueeze(2).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
-            neighbours1 = neighbours1.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
-            neighbours2 = neighbours2.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
+            neighbour_att_weights = self.neighbour_att(neighbours, current_role)
+            context = (neighbour_att_weights * neighbours).sum(1)
 
-            current_role_expanded = current_role.expand((self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(0), current_role.size(1))
-            current_role_expanded = current_role_expanded.transpose(0,1)
 
-            concat_vec = torch.cat([neighbours1, neighbours2, current_role_expanded], 2).view(-1, current_role.size(-1)*3)
-            pairwise_compared = self.pairwise_comparator(concat_vec)
-            context = pairwise_compared.view(-1, (self.encoder.max_role_count-1), (self.encoder.max_role_count-1), current_role.size(-1)).sum(2).squeeze()
-            context = torch.sigmoid(context)
-
-            current_role_expanded2 = current_role.expand((self.encoder.max_role_count-1), current_role.size(0), current_role.size(1))
-            current_role_expanded2 = current_role_expanded2.transpose(0,1)
-            joint = (context * current_role_expanded2).sum(1).squeeze()
-
-            #print('context ', context[0,:10])
-            #joint = torch.mul(context, current_role)
-            #joint = self.fusioner(torch.cat([current_role, context],-1))
-            #joint_drop = self.dropout(joint)
-            #joint_sign_sqrt = torch.sqrt(F.relu(joint_drop)) - torch.sqrt(F.relu(-joint_drop))
-            #joint_l2 = F.normalize(joint_sign_sqrt)
-            #print('joint_l2 ', joint_l2[0,:10])
-            #gate to decide which amount should be used from current role
-            #gate = torch.sigmoid(joint)
-            #print('gate ', gate[0,:10])
-            #current_out = gate * current_role + (1-gate) * context
 
             if rolei == 0:
                 updated_roles = joint.unsqueeze(1)
@@ -171,24 +146,15 @@ def build_top_down_with_pair_rf(n_roles, n_verbs, num_ans_classes, encoder):
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    '''pairwise_comparator = nn.Sequential(
-        nn.Linear(hidden_size*3, hidden_size//2),
-        nn.ReLU(),
-        nn.Linear(hidden_size//2, hidden_size),
-        nn.ReLU(),
-    )'''
 
-    pairwise_comparator = FCNet([hidden_size*3, hidden_size ])
+    neighbour_att = Attention(hidden_size, hidden_size, hidden_size)
 
     Dropout_C = nn.Dropout(0.2)
-    fusioner = nn.Sequential(
-        nn.Linear(hidden_size*2, hidden_size),
-        nn.ReLU(),
-    )
+
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_With_Pair_Rf(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, pairwise_comparator, fusioner, classifier, encoder, Dropout_C)
+                                 v_net, neighbour_att, classifier, encoder, Dropout_C)
 
 

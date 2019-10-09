@@ -47,6 +47,7 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_norm)
 
             optimizer.step()
+
             optimizer.zero_grad()
 
             train_loss += loss.item()
@@ -145,7 +146,7 @@ def main():
     parser.add_argument('--model_saving_name', type=str, help='saving name of the outpul model')
 
     parser.add_argument('--epochs', type=int, default=500)
-    parser.add_argument('--model', type=str, default='top_down_visual_context_only_baseline')
+    parser.add_argument('--model', type=str, default='top_down_with_pair_rf')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=1111, help='random seed')
     parser.add_argument('--clip_norm', type=float, default=0.25)
@@ -211,6 +212,7 @@ def main():
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
             {'params': model.pairwise_comparator.parameters()},
+            {'params': model.fusioner.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
