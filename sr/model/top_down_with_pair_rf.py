@@ -102,7 +102,7 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             current_role = all_roles[:,rolei]
 
-            neighbours1 = neighbours.unsqueeze(1).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
+            '''neighbours1 = neighbours.unsqueeze(1).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
             neighbours2 = neighbours.unsqueeze(2).expand(batch_size, self.encoder.max_role_count-1, self.encoder.max_role_count-1, current_role.size(-1))
             neighbours1 = neighbours1.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
             neighbours2 = neighbours2.contiguous().view(-1, (self.encoder.max_role_count-1)* (self.encoder.max_role_count-1), current_role.size(-1))
@@ -112,9 +112,9 @@ class Top_Down_With_Pair_Rf(nn.Module):
 
             concat_vec = torch.cat([neighbours1, neighbours2, current_role_expanded], 2).view(-1, current_role.size(-1)*3)
             pairwise_compared = self.pairwise_comparator(concat_vec)
-            context = pairwise_compared.view(-1, (self.encoder.max_role_count-1), (self.encoder.max_role_count-1), current_role.size(-1)).sum(2).squeeze()
+            context = pairwise_compared.view(-1, (self.encoder.max_role_count-1), (self.encoder.max_role_count-1), current_role.size(-1)).sum(2).squeeze()'''
 
-            contexted_role = torch.cat([context, current_role.unsqueeze(1)], 1)
+            contexted_role = torch.cat([neighbours, current_role.unsqueeze(1)], 1)
             self.fusioner.flatten_parameters()
             lstm_out, (h, _) = self.fusioner(contexted_role)
             updated_role = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
