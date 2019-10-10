@@ -55,6 +55,9 @@ class Top_Down_Baseline(nn.Module):
 
     def forward(self, v_org, gt_verb):
 
+        v_list = []
+        ans_list = []
+
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
@@ -95,7 +98,10 @@ class Top_Down_Baseline(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        out = torch.mul(q_repr, v_repr)
+        out = q_repr * v_repr
+
+        v_list.append(v_repr)
+        ans_list.append(out)
 
         for i in range(1):
 
@@ -111,18 +117,21 @@ class Top_Down_Baseline(nn.Module):
             added_img = torch.cat([withctx_expand, img], -1)
             added_img = added_img.contiguous().view(-1, added_img.size(-1))
             # use a gating mechanism to decide how much information is necessary from each region
-            # based on context informationto answer current query
+            # based on context information to answer current query
             added_img = torch.sigmoid(self.Dropout_C(self.resize_ctx(added_img)))
             added_img = added_img.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, added_img.size(-1))
             # update regions using the gate
-            img = added_img * img
+            updated_img = added_img * img
 
-            att = self.v_att(img, q_emb)
-            v_emb = (att * img).sum(1)
+            att = self.v_att(updated_img, q_emb)
+            v_emb = (att * updated_img).sum(1)
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(q_emb)
 
-            out = torch.mul(q_repr, v_repr)
+            out = q_repr * v_repr
+
+            gate = torch.sigmoid(v_list[-1] * v_repr)
+            out = gate * ans_list[-1] + (1-gate) * out
 
         logits = self.classifier(out)
 
