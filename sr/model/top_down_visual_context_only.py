@@ -37,7 +37,7 @@ def attention(query, key, value, mask=None, dropout=None):
     if dropout is not None:
         p_attn = dropout(p_attn)
 
-    return torch.matmul(p_attn, value)
+    return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
     def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, classifier, encoder):
