@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 from torch.nn.utils.weight_norm import weight_norm
+import copy
 
 from ..lib.attention import Attention
 from ..lib.classifier import SimpleClassifier
@@ -25,8 +26,21 @@ class vgg16_modified(nn.Module):
         features = self.vgg_features(x)
         return features
 
+def attention(self, query, key, value, mask=None, dropout=None):
+    "Compute 'Scaled Dot Product Attention'"
+    d_k = query.size(-1)
+    scores = torch.matmul(query, key.transpose(-2, -1)) \
+             / math.sqrt(d_k)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+    p_attn = F.softmax(scores, dim = -1)
+    if dropout is not None:
+        p_attn = dropout(p_attn)
+
+    return torch.matmul(p_attn, value)
+
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, resize_ctx, Dropout_C, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -36,22 +50,10 @@ class Top_Down_Baseline(nn.Module):
         self.q_net = q_net
         self.v_net = v_net
         self.resize_ctx = resize_ctx
+        self.neighbour_attention = neighbour_attention
         self.Dropout_C = Dropout_C
         self.classifier = classifier
         self.encoder = encoder
-
-    def attention(self, query, key, value, mask=None, dropout=None):
-        "Compute 'Scaled Dot Product Attention'"
-        d_k = query.size(-1)
-        scores = torch.matmul(query, key.transpose(-2, -1)) \
-                 / math.sqrt(d_k)
-        if mask is not None:
-            scores = scores.masked_fill(mask == 0, -1e9)
-        p_attn = F.softmax(scores, dim = -1)
-        if dropout is not None:
-            p_attn = dropout(p_attn)
-
-        return torch.matmul(p_attn, value)
 
     def forward(self, v_org, gt_verb):
 
@@ -107,7 +109,7 @@ class Top_Down_Baseline(nn.Module):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-            neighbours = self.attention(cur_group, cur_group, cur_group, mask=mask)
+            neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
             withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
@@ -155,6 +157,44 @@ class Top_Down_Baseline(nn.Module):
         final_loss = loss/batch_size
         return final_loss
 
+class MultiHeadedAttention(nn.Module):
+    def __init__(self, h, d_model, dropout=0.1):
+        "Take in model size and number of heads."
+        super(MultiHeadedAttention, self).__init__()
+        assert d_model % h == 0
+        # We assume d_v always equals d_k
+        self.d_k = d_model // h
+        self.h = h
+        self.linears = self.clones(nn.Linear(d_model, d_model), 4)
+        self.attn = None
+        self.dropout = nn.Dropout(p=dropout)
+
+    def clones(self, module, N):
+        "Produce N identical layers."
+        return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+
+    def forward(self, query, key, value, mask=None):
+        "Implements Figure 2"
+        if mask is not None:
+            # Same mask applied to all h heads.
+            mask = mask.unsqueeze(1)
+        nbatches = query.size(0)
+
+        # 1) Do all the linear projections in batch from d_model => h x d_k
+        query, key, value = \
+            [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+             for l, x in zip(self.linears, (query, key, value))]
+
+        # 2) Apply attention on all the projected vectors in batch.
+        x, self.attn = attention(query, key, value, mask=mask,
+                                 dropout=self.dropout)
+
+        # 3) "Concat" using a view and apply a final linear.
+        x = x.transpose(1, 2).contiguous() \
+            .view(nbatches, -1, self.h * self.d_k)
+
+        return self.linears[-1](x), torch.mean(self.attn, 1)
+
 def build_top_down_visual_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder):
 
     hidden_size = 1024
@@ -168,7 +208,7 @@ def build_top_down_visual_context_only_baseline(n_roles, n_verbs, num_ans_classe
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-
+    neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
     Dropout_C = nn.Dropout(0.1)
 
@@ -176,6 +216,6 @@ def build_top_down_visual_context_only_baseline(n_roles, n_verbs, num_ans_classe
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, resize_ctx, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, resize_ctx, Dropout_C, classifier, encoder)
 
 
