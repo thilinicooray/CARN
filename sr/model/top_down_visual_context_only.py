@@ -59,6 +59,7 @@ class Top_Down_Baseline(nn.Module):
 
         v_list = []
         ans_list = []
+        n_heads = 1
 
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
@@ -100,7 +101,17 @@ class Top_Down_Baseline(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        out = q_repr * v_repr
+        #out = q_repr * v_repr
+        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+
+        mfb_iq_drop = self.Dropout_M(mfb_iq_eltwise)
+
+        mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+        mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
+        mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
+        mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
+        mfb_l2 = F.normalize(mfb_sign_sqrt)
+        out = mfb_l2
 
         v_list.append(v_repr)
         ans_list.append(out)
@@ -130,7 +141,17 @@ class Top_Down_Baseline(nn.Module):
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(q_emb)
 
-            out = q_repr * v_repr
+            #out = q_repr * v_repr
+            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+
+            mfb_iq_drop = self.Dropout_M(mfb_iq_eltwise)
+
+            mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+            mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
+            mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
+            mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
+            mfb_l2 = F.normalize(mfb_sign_sqrt)
+            out = mfb_l2
 
             gate = torch.sigmoid(v_list[-1] * v_repr)
             out = gate * ans_list[-1] + (1-gate) * out
