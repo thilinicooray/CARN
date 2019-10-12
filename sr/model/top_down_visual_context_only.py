@@ -104,7 +104,7 @@ class Top_Down_Baseline(nn.Module):
         #out = q_repr * v_repr
         mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
-        mfb_iq_drop = self.Dropout_M(mfb_iq_eltwise)
+        mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
         mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
         mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
@@ -144,7 +144,7 @@ class Top_Down_Baseline(nn.Module):
             #out = q_repr * v_repr
             mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
-            mfb_iq_drop = self.Dropout_M(mfb_iq_eltwise)
+            mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
             mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
             mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
