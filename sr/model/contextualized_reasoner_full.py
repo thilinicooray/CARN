@@ -194,7 +194,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             # aggregating function
             # calculating attention for each answer
-            ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(torch.cat([mfb_l2_i, mfb_l2_q, mfb_l2_t],-1))))
+            ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
             out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
 
             gate = torch.sigmoid(v_list[-1] * v_repr + q_list[-1] * q_repr_q)
@@ -276,7 +276,7 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
-    multi_ans_attention = weight_norm(nn.Linear(hidden_size * 3, 3))
+    multi_ans_attention = weight_norm(nn.Linear(hidden_size, 3))
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
