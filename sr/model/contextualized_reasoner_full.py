@@ -149,14 +149,6 @@ class Contextualized_Reasoner_Full(nn.Module):
             q_repr = self.q_net(q_emb)
 
             ctx_aware_img_out = torch.mul(q_repr, v_repr)
-            mfb_iq_drop_i = self.Dropout_C(ctx_aware_img_out)
-
-            mfb_iq_resh_i = mfb_iq_drop_i.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
-            mfb_iq_sumpool_i = torch.sum(mfb_iq_resh_i, 3, keepdim=True)    # N x 1 x 1000 x 1
-            mfb_out_i = torch.squeeze(mfb_iq_sumpool_i)                     # N x 1000
-            mfb_sign_sqrt_i = torch.sqrt(F.relu(mfb_out_i)) - torch.sqrt(F.relu(-mfb_out_i))
-            mfb_l2_i = F.normalize(mfb_sign_sqrt_i)
-
 
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
@@ -167,13 +159,6 @@ class Contextualized_Reasoner_Full(nn.Module):
             q_repr_q = self.q_net(updated_q_emb)
 
             ctx_aware_query_out = torch.mul(q_repr_q, v_repr_q)
-            mfb_iq_drop_q = self.Dropout_C(ctx_aware_query_out)
-
-            mfb_iq_resh_q = mfb_iq_drop_q.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
-            mfb_iq_sumpool_q = torch.sum(mfb_iq_resh_q, 3, keepdim=True)    # N x 1 x 1000 x 1
-            mfb_out_q = torch.squeeze(mfb_iq_sumpool_q)                     # N x 1000
-            mfb_sign_sqrt_q = torch.sqrt(F.relu(mfb_out_q)) - torch.sqrt(F.relu(-mfb_out_q))
-            mfb_l2_q = F.normalize(mfb_sign_sqrt_q)
 
             # context aware img and query
 
@@ -182,8 +167,11 @@ class Contextualized_Reasoner_Full(nn.Module):
             v_repr_t = self.v_net(v_emb_t)
             q_repr_t = self.q_net(updated_q_emb)
 
-            ctx_aware_img_out = torch.mul(q_repr_t, v_repr_t)
-            mfb_iq_drop_t = self.Dropout_C(ctx_aware_img_out)
+            ctx_aware_all_out = torch.mul(q_repr_t, v_repr_t)
+
+            all = ctx_aware_img_out + ctx_aware_query_out + ctx_aware_all_out
+
+            mfb_iq_drop_t = self.Dropout_C(all)
 
             mfb_iq_resh_t = mfb_iq_drop_t.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
             mfb_iq_sumpool_t = torch.sum(mfb_iq_resh_t, 3, keepdim=True)    # N x 1 x 1000 x 1
@@ -194,8 +182,9 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             # aggregating function
             # calculating attention for each answer
-            ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
-            out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
+            #ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
+            #out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
+            out = mfb_l2_t
 
             gate = torch.sigmoid(v_list[-1] * v_repr + q_list[-1] * q_repr_q)
             out = gate * ans_list[-1] + (1-gate) * out
