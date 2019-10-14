@@ -119,7 +119,7 @@ class Top_Down_Baseline(nn.Module):
 
         updated_self_flat = updated_self.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
-        ctx_updated_ans = out + updated_self_flat
+        ctx_updated_ans = out + self.Dropout_C(updated_self_flat)
 
         logits = self.classifier(ctx_updated_ans)
 
