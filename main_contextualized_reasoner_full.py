@@ -213,6 +213,7 @@ def main():
             {'params': model.resize_ctx.parameters()},
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
+            {'params': model.multi_ans_attention.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

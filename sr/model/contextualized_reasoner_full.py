@@ -41,7 +41,7 @@ def attention(query, key, value, mask=None, dropout=None):
 
 class Contextualized_Reasoner_Full(nn.Module):
     def __init__(self, convnet, role_emb, verb_emb, query_composer, updated_query_composer,
-                 v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, classifier, encoder):
+                 v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, multi_ans_attention, classifier, encoder):
         super(Contextualized_Reasoner_Full, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -55,6 +55,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         self.neighbour_attention = neighbour_attention
         self.Dropout_C = Dropout_C
         self.classifier = classifier
+        self.multi_ans_attention = multi_ans_attention
         self.encoder = encoder
 
     def forward(self, v_org, gt_verb):
@@ -148,6 +149,13 @@ class Contextualized_Reasoner_Full(nn.Module):
             q_repr = self.q_net(q_emb)
 
             ctx_aware_img_out = torch.mul(q_repr, v_repr)
+            mfb_iq_drop_i = self.Dropout_C(ctx_aware_img_out)
+
+            mfb_iq_resh_i = mfb_iq_drop_i.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+            mfb_iq_sumpool_i = torch.sum(mfb_iq_resh_i, 3, keepdim=True)    # N x 1 x 1000 x 1
+            mfb_out_i = torch.squeeze(mfb_iq_sumpool_i)                     # N x 1000
+            mfb_sign_sqrt_i = torch.sqrt(F.relu(mfb_out_i)) - torch.sqrt(F.relu(-mfb_out_i))
+            mfb_l2_i = F.normalize(mfb_sign_sqrt_i)
 
 
             # context aware query reasoning
@@ -159,19 +167,35 @@ class Contextualized_Reasoner_Full(nn.Module):
             q_repr_q = self.q_net(updated_q_emb)
 
             ctx_aware_query_out = torch.mul(q_repr_q, v_repr_q)
+            mfb_iq_drop_q = self.Dropout_C(ctx_aware_query_out)
+
+            mfb_iq_resh_q = mfb_iq_drop_q.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+            mfb_iq_sumpool_q = torch.sum(mfb_iq_resh_q, 3, keepdim=True)    # N x 1 x 1000 x 1
+            mfb_out_q = torch.squeeze(mfb_iq_sumpool_q)                     # N x 1000
+            mfb_sign_sqrt_q = torch.sqrt(F.relu(mfb_out_q)) - torch.sqrt(F.relu(-mfb_out_q))
+            mfb_l2_q = F.normalize(mfb_sign_sqrt_q)
+
+            # context aware img and query
+
+            att_t = self.v_att(updated_img, updated_q_emb)
+            v_emb_t = (att_t * updated_img).sum(1)
+            v_repr_t = self.v_net(v_emb_t)
+            q_repr_t = self.q_net(updated_q_emb)
+
+            ctx_aware_img_out = torch.mul(q_repr_t, v_repr_t)
+            mfb_iq_drop_t = self.Dropout_C(ctx_aware_img_out)
+
+            mfb_iq_resh_t = mfb_iq_drop_t.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+            mfb_iq_sumpool_t = torch.sum(mfb_iq_resh_t, 3, keepdim=True)    # N x 1 x 1000 x 1
+            mfb_out_t = torch.squeeze(mfb_iq_sumpool_t)                     # N x 1000
+            mfb_sign_sqrt_t = torch.sqrt(F.relu(mfb_out_t)) - torch.sqrt(F.relu(-mfb_out_t))
+            mfb_l2_t = F.normalize(mfb_sign_sqrt_t)
+
 
             # aggregating function
-            mfb_iq_eltwise = ctx_aware_query_out + ctx_aware_img_out
-
-
-            mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
-
-            mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
-            mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
-            mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
-            mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
-            mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2
+            # calculating attention for each answer
+            ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(torch.cat([mfb_l2_i, mfb_l2_q, mfb_l2_t],-1))))
+            out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
 
             gate = torch.sigmoid(v_list[-1] * v_repr + q_list[-1] * q_repr_q)
             out = gate * ans_list[-1] + (1-gate) * out
@@ -252,12 +276,13 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
+    multi_ans_attention = weight_norm(nn.Linear(hidden_size * 3, 3))
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Contextualized_Reasoner_Full(covnet, role_emb, verb_emb, query_composer, updated_query_composer, v_att, q_net,
-                             v_net, neighbour_attention, resize_ctx, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, resize_ctx, Dropout_C, multi_ans_attention, classifier, encoder)
 
 
