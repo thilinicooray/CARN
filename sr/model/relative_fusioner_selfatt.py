@@ -40,7 +40,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, self_attention, Dropout_C, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -49,15 +49,14 @@ class Top_Down_Baseline(nn.Module):
         self.v_att = v_att
         self.q_net = q_net
         self.v_net = v_net
-        self.updated_query_composer = updated_query_composer
-        self.neighbour_attention = neighbour_attention
+        self.self_attention = self_attention
         self.Dropout_C = Dropout_C
         self.classifier = classifier
         self.encoder = encoder
 
     def forward(self, v_org, gt_verb):
 
-        q_list = []
+        v_list = []
         ans_list = []
         n_heads = 1
 
@@ -91,7 +90,7 @@ class Top_Down_Baseline(nn.Module):
         q_emb = self.query_composer(role_verb_embd)
 
         # mask out non-existing roles from (max_role x max_role) adj. matrix
-        mask = self.encoder.get_adj_matrix_noself(gt_verb)
+        mask = self.encoder.get_adj_matrix(gt_verb)
 
         if torch.cuda.is_available():
             mask = mask.to(torch.device('cuda'))
@@ -113,40 +112,16 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        q_list.append(q_repr)
-        ans_list.append(out)
 
-        for i in range(1):
+        cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-            cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+        updated_self, _ = self.self_attention(cur_group, cur_group, cur_group, mask=mask)
 
-            neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+        updated_self_flat = updated_self.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
-            withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
+        ctx_updated_ans = out + updated_self_flat
 
-            updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
-
-            att = self.v_att(img, updated_q_emb)
-            v_emb = (att * img).sum(1)
-            v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(updated_q_emb)
-
-            #out = q_repr * v_repr
-            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
-
-            mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
-
-            mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
-            mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
-            mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
-            mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
-            mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2
-
-            gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out
-
-        logits = self.classifier(out)
+        logits = self.classifier(ctx_updated_ans)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -206,7 +181,7 @@ class MultiHeadedAttention(nn.Module):
 
         return self.linears[-1](x), torch.mean(self.attn, 1)
 
-def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder):
+def build_relative_fusioner_selfatt(n_roles, n_verbs, num_ans_classes, encoder):
 
     hidden_size = 1024
     word_embedding_size = 300
@@ -216,17 +191,16 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
-    updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
+    self_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder)
+                             v_net, self_attention, Dropout_C, classifier, encoder)
 
 

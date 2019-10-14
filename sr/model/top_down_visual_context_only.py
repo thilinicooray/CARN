@@ -229,7 +229,7 @@ def build_top_down_visual_context_only_baseline(n_roles, n_verbs, num_ans_classe
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
+    neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
     Dropout_C = nn.Dropout(0.1)
 
