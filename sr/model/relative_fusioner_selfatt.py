@@ -113,15 +113,15 @@ class Top_Down_Baseline(nn.Module):
         out = mfb_l2
 
 
-        cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+        '''cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         updated_self, _ = self.self_attention(cur_group, cur_group, cur_group, mask=mask)
 
         updated_self_flat = updated_self.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
-        ctx_updated_ans = out + self.Dropout_C(updated_self_flat)
+        ctx_updated_ans = out + self.Dropout_C(updated_self_flat)'''
 
-        logits = self.classifier(ctx_updated_ans)
+        logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
