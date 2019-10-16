@@ -155,9 +155,7 @@ class Top_Down_Baseline(nn.Module):
         value = torch.bmm(constructed_img.view(negative_img_embed.size(0), 1, negative_img_embed.size(1))
                           , (flattened_img - negative_img_embed).view(flattened_img.size(0), flattened_img.size(1), 1))
 
-        print('rank loss ', value.size(), margin.size() , margin.squeeze().size())
-
-        rank_loss = torch.sum(torch.max(torch.zeros(margin.size(0)).cuda(), margin.squeeze() - value.squeeze()),0)/batch_size
+        rank_loss = torch.mean(torch.max(torch.zeros(margin.size(0)).cuda(), margin.squeeze() - value.squeeze()),0)/batch_size
 
         return final_loss_entropy, rank_loss
 

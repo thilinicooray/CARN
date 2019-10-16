@@ -105,7 +105,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
-        for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+        for i, (img_id, img, verb, labels, _) in enumerate(dev_loader):
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
