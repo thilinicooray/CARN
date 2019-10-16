@@ -114,7 +114,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model(img, verb)
+            role_predict, constructed_img, flattened_img = model(img, verb)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
