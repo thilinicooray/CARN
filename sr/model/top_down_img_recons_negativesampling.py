@@ -115,7 +115,7 @@ class Top_Down_Baseline(nn.Module):
             flattened_img = flattened_img.expand(5, flattened_img.size(0), flattened_img.size(1))
             flattened_img = flattened_img.view(batch_size* 5, -1)
 
-            negative_img_all = negative_samples.view(batch_size*5, 4)
+            negative_img_all = negative_samples.view(batch_size*5, negative_samples.size(2), negative_samples.size(3), negative_samples.size(4))
             negative_img_embed = self.flatten_img(self.convnet(negative_img_all).view(-1, 512*7*7))
             #unmasked encoding
             constructed_img = self.reconstruct_img(cur_group)
