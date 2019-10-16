@@ -158,7 +158,7 @@ class Top_Down_Baseline(nn.Module):
 
         print('rank loss ', value.size(), margin.size() )
 
-        rank_loss = torch.sum(torch.max(0, margin.squeeze() - value.squeeze()),0)/batch_size
+        rank_loss = torch.sum(torch.max(0, margin.squeeze().item() - value.squeeze().item()),0)/batch_size
 
         return final_loss_entropy, rank_loss
 
