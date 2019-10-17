@@ -57,6 +57,11 @@ class imsitu_encoder():
                     if label not in self.label_list:
                         self.label_list.append(label)
 
+
+        with open('object_list.txt', 'w') as filehandle:
+            for listitem in self.label_list:
+                filehandle.write('%s\n' % listitem)
+
         print('train set stats: \n\t verb count:', len(self.verb_list), '\n\t role count:',len(self.role_list),
               '\n\t label count:', len(self.label_list) ,
               '\n\t max role count:', self.max_role_count)
