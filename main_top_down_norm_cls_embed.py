@@ -175,9 +175,9 @@ def main():
     cls_emb_path = 'data/glove6b_init_imsitu_carn.npy'
     weight_init = torch.from_numpy(np.load(cls_emb_path))
 
-    print('layer copying ', model.classifier[-1], weight_init.size())
+    print('layer copying ', model.classifier.main[-1], weight_init.size())
 
-    model.classifier[-1].weight.data = weight_init
+    model.classifier.main[-1].weight.data = weight_init
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
@@ -211,7 +211,7 @@ def main():
         print('Training from the scratch.')
         model_name = 'train_full'
         utils.set_trainable(model, True)
-        utils.set_trainable(model.classifier[-1], False)
+        utils.set_trainable(model.classifier.main[-1], False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
@@ -220,7 +220,7 @@ def main():
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
-            {'params': model.classifier[:-1].parameters()}
+            {'params': model.classifier.main[:-1].parameters()}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
