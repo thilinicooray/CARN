@@ -178,8 +178,7 @@ def main():
     #init classifier weights
     cls_emb_path = 'data/glove6b_init_imsitu_carn.npy'
     weight_init = torch.from_numpy(np.load(cls_emb_path))
-    assert weight_init.shape == model.classifier.main[-1].shape
-    model.classifier.main[-1].weight.data = weight_init
+    model.classifier.main[-1].weight.data.copy_(weight_init)
     print(model.classifier.main[-1].weight.data[0], weight_init[0])
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
