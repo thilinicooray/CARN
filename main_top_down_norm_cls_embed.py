@@ -174,7 +174,7 @@ def main():
     #init classifier weights
     cls_emb_path = 'data/bert_init_imsitu_carn.npy'
     weight_init = torch.from_numpy(np.load(cls_emb_path))
-    model.classifier.main[-1].weight.data.copy_(weight_init)
+    model.classifier.main[-1].weight.data.copy_(torch.cat([weight_init,weight_init],-1))
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
