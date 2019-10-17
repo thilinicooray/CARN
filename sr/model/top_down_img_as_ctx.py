@@ -112,6 +112,10 @@ class Top_Down_Baseline(nn.Module):
         cur_group = out.contiguous().view(v.size(0), -1)
         #unmasked encoding
         constructed_img = self.reconstruct_img(cur_group)
+        constructed_img = constructed_img.expand(self.encoder.max_role_count, constructed_img.size(0), constructed_img.size(1))
+
+        constructed_img = constructed_img.transpose(0,1)
+        constructed_img = constructed_img.contiguous().view(batch_size * self.encoder.max_role_count, -1)
 
         logits = self.classifier(out * constructed_img)
 
