@@ -172,7 +172,7 @@ def main():
     model = getattr(top_down_norm_cls_embed, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
     #init classifier weights
-    cls_emb_path = 'data/glove6b_init_imsitu_carn.npy'
+    cls_emb_path = 'data/bert_init_imsitu_carn.npy'
     weight_init = torch.from_numpy(np.load(cls_emb_path))
     model.classifier.main[-1].weight.data.copy_(weight_init)
 

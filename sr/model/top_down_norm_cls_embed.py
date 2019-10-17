@@ -120,7 +120,7 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     classifier = SimpleClassifier(
-        hidden_size, word_embedding_size, num_ans_classes, 0.5)
+        hidden_size, hidden_size, num_ans_classes, 0.5)
 
     Dropout_C = nn.Dropout(0.1)
 
