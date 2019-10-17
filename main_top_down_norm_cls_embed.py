@@ -26,8 +26,9 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
+    print(model.classifier)
     for f in model.classifier.parameters():
-        print(f.requires_grad, f)
+        print(f.requires_grad)
 
 
     for epoch in range(max_epoch):
@@ -178,8 +179,8 @@ def main():
     #init classifier weights
     cls_emb_path = 'data/glove6b_init_imsitu_carn.npy'
     weight_init = torch.from_numpy(np.load(cls_emb_path))
+    print(model.classifier.main[-1].size(), weight_init.size())
     model.classifier.main[-1].weight.data.copy_(weight_init)
-    print(model.classifier.main[-1].weight.data[0], weight_init[0])
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
