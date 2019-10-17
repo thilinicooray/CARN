@@ -208,7 +208,6 @@ def main():
         print('Training from the scratch.')
         model_name = 'train_full'
         utils.set_trainable(model, True)
-        utils.set_trainable(model.classifier.main[-1], False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
@@ -217,7 +216,8 @@ def main():
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
-            {'params': model.classifier.main[:-1].parameters()}
+            {'params': model.classifier.main[:-1].parameters()},
+            {'params': model.classifier.main[-1].parameters(), 'lr': 5e-5}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
