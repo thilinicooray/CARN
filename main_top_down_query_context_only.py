@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
-from sr.model import top_down_img_recons
+from sr.model import top_down_query_context_only
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -39,9 +39,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict, constructed_img, flattened_img = pmodel(img, verb)
-            loss_entropy, loss_recons = model.calculate_loss(verb, role_predict, labels, constructed_img, flattened_img)
-            loss = loss_entropy + loss_recons
+            role_predict = pmodel(img, verb)
+            loss = model.calculate_loss(verb, role_predict, labels)
 
             loss.backward()
 
@@ -59,10 +58,10 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
             if total_steps % print_freq == 0:
                 top1_a = top1.get_average_results_nouns()
                 top5_a = top5.get_average_results_nouns()
-                print ("{},{},{}, {} , {}, loss = {:.2f}, avg loss = {:.2f}, entropy_loss = {:.2f}, recon_loss = {:.2f},"
+                print ("{},{},{}, {} , {}, loss = {:.2f}, avg loss = {:.2f}"
                        .format(total_steps-1,epoch,i, utils.format_dict(top1_a, "{:.2f}", "1-"),
                                utils.format_dict(top5_a,"{:.2f}","5-"), loss.item(),
-                               train_loss / ((total_steps-1)%eval_frequency), loss_entropy.item(), loss_recons.item() ))
+                               train_loss / ((total_steps-1)%eval_frequency) ))
 
 
             if total_steps % eval_frequency == 0:
@@ -114,7 +113,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict, constructed_img, flattened_img = model(img, verb)
+            role_predict = model(img, verb)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -146,7 +145,7 @@ def main():
     parser.add_argument('--model_saving_name', type=str, help='saving name of the outpul model')
 
     parser.add_argument('--epochs', type=int, default=500)
-    parser.add_argument('--model', type=str, default='top_down_img_recons')
+    parser.add_argument('--model', type=str, default='top_down_query_context_only_baseline')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=1111, help='random seed')
     parser.add_argument('--clip_norm', type=float, default=0.25)
@@ -169,7 +168,7 @@ def main():
     train_set = imsitu_loader.imsitu_loader(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
     constructor = 'build_%s' % args.model
-    model = getattr(top_down_img_recons, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
+    model = getattr(top_down_query_context_only, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
@@ -211,8 +210,8 @@ def main():
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
-            {'params': model.flatten_img.parameters()},
-            {'params': model.reconstruct_img.parameters()},
+            {'params': model.updated_query_composer.parameters()},
+            {'params': model.neighbour_attention.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

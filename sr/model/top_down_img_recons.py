@@ -39,7 +39,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, Dropout_C, flatten_img, classifier, encoder, reconstruct_img, role_decoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, Dropout_C, flatten_img, classifier, encoder, reconstruct_img):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -53,7 +53,6 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
         self.reconstruct_img = reconstruct_img
-        self.role_decoder = role_decoder
 
     def forward(self, v_org, gt_verb):
 
@@ -116,10 +115,7 @@ class Top_Down_Baseline(nn.Module):
         #unmasked encoding
         constructed_img = self.reconstruct_img(cur_group)
 
-        decoded_roles = self.role_decoder(constructed_img)
-        decoded_roles = decoded_roles.contiguous().view(v.size(0)*self.encoder.max_role_count, -1)
-
-        logits = self.classifier(out + decoded_roles)
+        logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -166,12 +162,11 @@ def build_top_down_img_recons(n_roles, n_verbs, num_ans_classes, encoder):
     )
 
     reconstruct_img = FCNet([hidden_size*6, hidden_size])
-    role_decoder = FCNet([hidden_size, hidden_size*6])
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, Dropout_C, flatten_img, classifier, encoder, reconstruct_img, role_decoder)
+                             v_net, Dropout_C, flatten_img, classifier, encoder, reconstruct_img)
 
 
