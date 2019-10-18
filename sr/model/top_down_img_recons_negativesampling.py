@@ -54,7 +54,7 @@ class Top_Down_Baseline(nn.Module):
         self.encoder = encoder
         self.reconstruct_img = reconstruct_img
 
-    def forward(self, v_org, gt_verb, negative_samples, negtive_sample_count = 3):
+    def forward(self, v_org, gt_verb, negative_samples, negtive_sample_count = 2):
         n_heads = 1
         img_features = self.convnet(v_org)
 
