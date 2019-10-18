@@ -213,6 +213,7 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.flatten_img.parameters()},
             {'params': model.reconstruct_img.parameters()},
+            {'params': model.role_decoder.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
