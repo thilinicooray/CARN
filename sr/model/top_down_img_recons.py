@@ -119,9 +119,6 @@ class Top_Down_Baseline(nn.Module):
         decoded_roles = self.role_decoder(constructed_img)
         decoded_roles = decoded_roles.contiguous().view(v.size(0)*self.encoder.max_role_count, -1)
 
-        print('out :', out[0,:5], decoded_roles[0,:5])
-
-
         logits = self.classifier(out + decoded_roles)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
