@@ -159,7 +159,7 @@ def build_top_down_img_as_ctx(n_roles, n_verbs, num_ans_classes, encoder):
     reconstruct_img = FCNet([hidden_size*6, hidden_size])
 
     classifier = SimpleClassifier(
-        hidden_size, 3 * hidden_size, num_ans_classes, 0.5)
+        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, Dropout_C, classifier, encoder, reconstruct_img)
