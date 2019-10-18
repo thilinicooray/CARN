@@ -47,7 +47,7 @@ class imsitu_loader_negative_sampling(data.Dataset):
         img = self.transform(img)
 
         #getting negative samples
-        sample_count = 5
+        sample_count = 3
         sample_idx_list = []
         sample_list = []
         is_incomplete = True
