@@ -141,7 +141,7 @@ class Top_Down_Baseline(nn.Module):
                 loss += frame_loss
 
         final_loss_entropy = loss/batch_size
-        final_loss_recons = 10 * l2_criterion(constructed_img, flattened_img)
+        final_loss_recons = l2_criterion(constructed_img, flattened_img)
         return final_loss_entropy, final_loss_recons
 
 
