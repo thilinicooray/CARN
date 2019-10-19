@@ -137,13 +137,13 @@ class Contextualized_Reasoner_Full(nn.Module):
             # use a gating mechanism to decide how much information is necessary from each region
             # based on context information to answer current query
             role_wise_region_values = self.Dropout_C(self.resize_ctx(added_img))
-            print('role_wise_region_values :', role_wise_region_values.size())
+            #print('role_wise_region_values :', role_wise_region_values.size())
             role_wise_region_values = role_wise_region_values.view(out.size(0), 7, 7)
-            print('role_wise_region_values view :', role_wise_region_values.size(), role_wise_region_values)
+            #print('role_wise_region_values view :', role_wise_region_values.size(), role_wise_region_values)
             region_scores = F.avg_pool2d(role_wise_region_values, erase_size, stride=1) # (n, 7-self.erase_size_visual+1, 7-self.erase_size_visual+1)
-            print('region_scores :', region_scores.size(), region_scores)
+            #print('region_scores :', region_scores.size(), region_scores)
             _, select_index = torch.max(region_scores.view(out.size(0), -1), 1)
-            print('select_index :', select_index.size(), select_index[:6])
+            print('select_index :', select_index.size(), select_index)
 
             select_index = np.asarray(select_index.view(-1).cpu().data)
             select_index_row = select_index // (7-erase_size+1)
@@ -158,7 +158,6 @@ class Contextualized_Reasoner_Full(nn.Module):
             cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
 
             cur_img = cur_img.contiguous().view(v.size(0),self.encoder.max_role_count, -1, cur_img.size(-1)) #batch_size x 6 x 49 x 1024
-            print('updated cur img ', cur_img.size())
 
             # now get the updated image for each separate role
             required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
