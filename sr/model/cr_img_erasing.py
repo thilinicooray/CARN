@@ -181,7 +181,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             updated_img = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
 
-            print('all neighbour uodated img :', updated_img.size(), updated_img[0,:5,:5])
+            #print('all neighbour uodated img :', updated_img.size(), updated_img[0,:5,:5])
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
             neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
