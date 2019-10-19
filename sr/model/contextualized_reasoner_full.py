@@ -41,7 +41,7 @@ def attention(query, key, value, mask=None, dropout=None):
 
 class Contextualized_Reasoner_Full(nn.Module):
     def __init__(self, convnet, role_emb, verb_emb, query_composer, updated_query_composer,
-                 v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, multi_ans_attention, classifier, encoder):
+                 v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, flattened_ctx_img, classifier, encoder):
         super(Contextualized_Reasoner_Full, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -55,7 +55,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         self.neighbour_attention = neighbour_attention
         self.Dropout_C = Dropout_C
         self.classifier = classifier
-        self.multi_ans_attention = multi_ans_attention
+        self.flattened_ctx_img = flattened_ctx_img
         self.encoder = encoder
 
     def forward(self, v_org, gt_verb):
@@ -141,14 +141,8 @@ class Contextualized_Reasoner_Full(nn.Module):
             added_img = torch.sigmoid(self.Dropout_C(self.resize_ctx(added_img)))
             added_img = added_img.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, added_img.size(-1))
             # update regions using the gate
-            updated_img = added_img * img
-
-            att = self.v_att(updated_img, q_emb)
-            v_emb = (att * updated_img).sum(1)
-            v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(q_emb)
-
-            ctx_aware_img_out = torch.mul(q_repr, v_repr)
+            # can we mask out areas of context, so what is remaining is what we want
+            updated_img = img - added_img * img
 
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
@@ -160,18 +154,9 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             ctx_aware_query_out = torch.mul(q_repr_q, v_repr_q)
 
-            # context aware img and query
+            combined_out = ctx_aware_query_out
 
-            att_t = self.v_att(updated_img, updated_q_emb)
-            v_emb_t = (att_t * updated_img).sum(1)
-            v_repr_t = self.v_net(v_emb_t)
-            q_repr_t = self.q_net(updated_q_emb)
-
-            ctx_aware_all_out = torch.mul(q_repr_t, v_repr_t)
-
-            all = ctx_aware_img_out + ctx_aware_query_out + ctx_aware_all_out
-
-            mfb_iq_drop_t = self.Dropout_C(all)
+            mfb_iq_drop_t = self.Dropout_C(combined_out)
 
             mfb_iq_resh_t = mfb_iq_drop_t.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
             mfb_iq_sumpool_t = torch.sum(mfb_iq_resh_t, 3, keepdim=True)    # N x 1 x 1000 x 1
@@ -184,9 +169,9 @@ class Contextualized_Reasoner_Full(nn.Module):
             # calculating attention for each answer
             #ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
             #out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
-            out = mfb_l2_t
+            out = mfb_l2_t + self.flattened_ctx_img(updated_img.contiguous().view(updated_img.size(0), -1))
 
-            gate = torch.sigmoid(v_list[-1] * v_repr + q_list[-1] * q_repr_q)
+            gate = torch.sigmoid(q_list[-1] * q_repr_q)
             out = gate * ans_list[-1] + (1-gate) * out
 
         logits = self.classifier(out)
@@ -265,13 +250,13 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
-    multi_ans_attention = weight_norm(nn.Linear(hidden_size, 3))
+    flattened_ctx_img = weight_norm(nn.Linear(512 * 7 * 7, hidden_size))
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Contextualized_Reasoner_Full(covnet, role_emb, verb_emb, query_composer, updated_query_composer, v_att, q_net,
-                             v_net, neighbour_attention, resize_ctx, Dropout_C, multi_ans_attention, classifier, encoder)
+                             v_net, neighbour_attention, resize_ctx, Dropout_C, flattened_ctx_img, classifier, encoder)
 
 
