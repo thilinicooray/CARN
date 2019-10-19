@@ -154,7 +154,7 @@ class Contextualized_Reasoner_Full(nn.Module):
                 for erase_col in range(erase_size):
                     cur_img[all_index, select_index_row+erase_row, select_index_col+erase_col, :] = 0
 
-            print(cur_img[0,:3,0,:5],'\n', cur_img[3,:3,0,:5],'\n',cur_img[6,:3,0,:5])
+            print(cur_img[0,:5,0,:5],'\n', cur_img[3,:5,0,:5],'\n',cur_img[6,:5,0,:5])
 
             cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
 
@@ -182,7 +182,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             updated_img = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
 
-            #print('all neighbour uodated img :', updated_img.size(), updated_img[0,:5,:5])
+            print('all neighbour uodated img :', updated_img.size(), updated_img[0,:10,:5])
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
             neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
