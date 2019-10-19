@@ -127,8 +127,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         for i in range(1):
 
             # context aware img reasoning
-            cur_img = img.contiguous().view(out.size(0), 7,7, -1)
-            print('cur_img ', cur_img.size())
+            cur_img = np.asarray(img.contiguous().view(out.size(0), 7,7, -1).cpu().data)
 
             withctx_expand = out.expand(img.size(1), out.size(0), out.size(1))
             withctx_expand = withctx_expand.transpose(0,1)
@@ -140,9 +139,9 @@ class Contextualized_Reasoner_Full(nn.Module):
             role_wise_region_values = self.Dropout_C(self.resize_ctx(added_img))
             print('role_wise_region_values :', role_wise_region_values.size())
             role_wise_region_values = role_wise_region_values.view(out.size(0), 7, 7)
-            print('role_wise_region_values view :', role_wise_region_values.size())
+            print('role_wise_region_values view :', role_wise_region_values.size(), role_wise_region_values)
             region_scores = F.avg_pool2d(role_wise_region_values, erase_size, stride=1) # (n, 7-self.erase_size_visual+1, 7-self.erase_size_visual+1)
-            print('region_scores :', region_scores.size())
+            print('region_scores :', region_scores.size(), region_scores)
             _, select_index = torch.max(region_scores.view(out.size(0), -1), 1)
             print('select_index :', select_index.size(), select_index[:6])
 
@@ -150,13 +149,13 @@ class Contextualized_Reasoner_Full(nn.Module):
             select_index_row = select_index // (7-erase_size+1)
             select_index_col = select_index % (7-erase_size+1)
 
-            print('selected row and col ', select_index_row[:6], select_index_col[:6])
+            print('selected row and col ', select_index_row, select_index_col)
 
             for erase_row in range(erase_size):
                 for erase_col in range(erase_size):
                     cur_img[all_index, select_index_row+erase_row, select_index_col+erase_col, :] = 0
 
-            #pool5 = Variable(torch.from_numpy(pool5), requires_grad=False).cuda() why do we need to make cur img numpy?
+            cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
 
             cur_img = cur_img.contiguous().view(v.size(0),self.encoder.max_role_count, -1, cur_img.size(-1)) #batch_size x 6 x 49 x 1024
             print('updated cur img ', cur_img.size())
