@@ -154,7 +154,7 @@ class Contextualized_Reasoner_Full(nn.Module):
                 for erase_col in range(erase_size):
                     cur_img[all_index, select_index_row+erase_row, select_index_col+erase_col, :] = 0
 
-            print(cur_img[0,:3,0,:5], cur_img[3,:3,0,:5],cur_img[6,:3,0,:5])
+            print(cur_img[0,:3,0,:5],'\n', cur_img[3,:3,0,:5],'\n',cur_img[6,:3,0,:5])
 
             cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
 
