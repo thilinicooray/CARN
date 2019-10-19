@@ -143,7 +143,6 @@ class Contextualized_Reasoner_Full(nn.Module):
             region_scores = F.avg_pool2d(role_wise_region_values, erase_size, stride=1) # (n, 7-self.erase_size_visual+1, 7-self.erase_size_visual+1)
             #print('region_scores :', region_scores.size(), region_scores)
             _, select_index = torch.max(region_scores.view(out.size(0), -1), 1)
-            print('select_index :', select_index.size(), select_index)
 
             select_index = np.asarray(select_index.view(-1).cpu().data)
             select_index_row = select_index // (7-erase_size+1)
@@ -154,6 +153,8 @@ class Contextualized_Reasoner_Full(nn.Module):
             for erase_row in range(erase_size):
                 for erase_col in range(erase_size):
                     cur_img[all_index, select_index_row+erase_row, select_index_col+erase_col, :] = 0
+
+            print(cur_img[0,:3,0,:5], cur_img[3,:3,0,:5],cur_img[6,:3,0,:5])
 
             cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
 
