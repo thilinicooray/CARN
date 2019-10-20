@@ -84,11 +84,9 @@ class Contextualized_Reasoner_Full(nn.Module):
         img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
 
         img = img.transpose(0,1)
-        img = img.contiguous().view(-1, v.size(2))
+        img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
 
         img = self.img_refiner(img)
-
-        img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -248,7 +246,7 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     covnet = vgg16_modified()
     img_refiner = nn.Sequential(
         nn.Linear(img_embedding_size, img_embedding_size),
-        nn.BatchNorm1d(img_embedding_size),
+        nn.ReLU(),
     )
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
