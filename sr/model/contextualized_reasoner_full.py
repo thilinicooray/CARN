@@ -247,7 +247,6 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     covnet = vgg16_modified()
     img_refiner = nn.Sequential(
         nn.Linear(img_embedding_size, img_embedding_size),
-        nn.ReLU(),
     )
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
@@ -258,7 +257,7 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
-    flattened_ctx_img = weight_norm(nn.Linear(512 * 7 * 7, hidden_size))
+    flattened_ctx_img = weight_norm(nn.Linear(512 * 14 * 14, hidden_size))
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
