@@ -290,7 +290,10 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
         nn.BatchNorm1d(hidden_size),
         nn.ReLU(),
     )'''
-    img_refiner = nn.Linear(img_embedding_size, img_embedding_size)
+    img_refiner = nn.Sequential(
+        nn.Linear(img_embedding_size, img_embedding_size),
+        nn.BatchNorm1d(hidden_size),
+    )
 
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
