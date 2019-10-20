@@ -20,7 +20,7 @@ class vgg16_modified(nn.Module):
     def __init__(self):
         super(vgg16_modified, self).__init__()
         vgg = tv.models.vgg16_bn(pretrained=True)
-        self.vgg_features = vgg.features
+        self.vgg_features = vgg.features[:-2]
 
     def forward(self,x):
         features = self.vgg_features(x)
@@ -67,6 +67,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         n_heads = 1
 
         img_features = self.convnet(v_org)
+        print(img_features.size())
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
@@ -86,7 +87,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
 
-        img = self.img_refiner(img)
+        #img = self.img_refiner(img)
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
