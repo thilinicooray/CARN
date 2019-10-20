@@ -116,7 +116,7 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
-        for i in range(1):
+        for i in range(2):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -145,6 +145,9 @@ class Top_Down_Baseline(nn.Module):
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out
+
+            q_list.append(q_repr)
+            ans_list.append(out)
 
         logits = self.classifier(out)
 
