@@ -20,7 +20,7 @@ class vgg16_modified(nn.Module):
     def __init__(self):
         super(vgg16_modified, self).__init__()
         vgg = tv.models.vgg16_bn(pretrained=True)
-        self.vgg_features = vgg.features[:-2]
+        self.vgg_features = vgg.features
 
     def forward(self,x):
         features = self.vgg_features(x)
@@ -86,7 +86,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
 
-        #img = self.img_refiner(img)
+        img = self.img_refiner(img)
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -244,9 +244,10 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     img_embedding_size = 512
 
     covnet = vgg16_modified()
-    img_refiner = nn.Sequential(
+    '''img_refiner = nn.Sequential(
         nn.Linear(img_embedding_size, img_embedding_size),
-    )
+    )'''
+    img_refiner = FCNet([img_embedding_size, img_embedding_size])
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
@@ -256,7 +257,7 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
-    flattened_ctx_img = weight_norm(nn.Linear(512 * 14 * 14, hidden_size))
+    flattened_ctx_img = weight_norm(nn.Linear(512 * 7 * 7, hidden_size))
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
