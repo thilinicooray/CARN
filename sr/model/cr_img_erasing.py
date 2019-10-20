@@ -159,7 +159,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             role_wise_mask = role_wise_mask.contiguous().view(v.size(0),self.encoder.max_role_count, -1) #batch_size x 6 x 49 x 1024
 
-            print('role wise erased img:', role_wise_mask[1,:,:])
+            print('role wise erased img:', role_wise_mask[0,:,:])
 
             # now get the updated image for each separate role
             required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
@@ -183,7 +183,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             updated_roles = img * updated_roles_mask.unsqueeze(-1).contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
 
-            print('all neighbour updated img :', updated_roles_mask[1,:2,:5,:5])
+            print('all neighbour updated img :', updated_roles_mask[:5,:5,:5])
 
             updated_img = updated_roles
 
