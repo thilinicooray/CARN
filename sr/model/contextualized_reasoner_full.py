@@ -145,7 +145,7 @@ class Contextualized_Reasoner_Full(nn.Module):
             added_img = added_img.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, added_img.size(-1))
             # update regions using the gate
             # can we mask out areas of context, so what is remaining is what we want
-            updated_img = img - added_img * img
+            updated_img = added_img * img
 
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
@@ -172,7 +172,7 @@ class Contextualized_Reasoner_Full(nn.Module):
             # calculating attention for each answer
             #ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
             #out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
-            out = mfb_l2_t + self.flattened_ctx_img(updated_img.contiguous().view(updated_img.size(0), -1))
+            out = mfb_l2_t 
             #out = mfb_l2_t
             gate = torch.sigmoid(q_list[-1] * q_repr_q)
             out = gate * ans_list[-1] + (1-gate) * out
