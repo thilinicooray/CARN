@@ -256,7 +256,7 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
+    neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     resize_ctx = weight_norm(nn.Linear(hidden_size + 512, 512))
     flattened_ctx_img = weight_norm(nn.Linear(512 * 7 * 7, hidden_size))
     Dropout_C = nn.Dropout(0.1)
