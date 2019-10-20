@@ -127,7 +127,8 @@ class Contextualized_Reasoner_Full(nn.Module):
         for i in range(1):
 
             # context aware img reasoning
-            cur_img = np.asarray(img.contiguous().view(out.size(0), 7,7, -1).cpu().data)
+            #cur_img = np.asarray(img.contiguous().view(out.size(0), 7,7, -1).cpu().data)
+            role_wise_mask = np.ones((out.size(0), 7, 7))
 
             withctx_expand = out.expand(img.size(1), out.size(0), out.size(1))
             withctx_expand = withctx_expand.transpose(0,1)
@@ -152,18 +153,16 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             for erase_row in range(erase_size):
                 for erase_col in range(erase_size):
-                    cur_img[all_index, select_index_row+erase_row, select_index_col+erase_col, :] = 0
+                    role_wise_mask[all_index, select_index_row+erase_row, select_index_col+erase_col] = 0
 
-            cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
+            role_wise_mask = torch.autograd.Variable(torch.from_numpy(role_wise_mask), requires_grad=False).cuda()
 
-            cur_img = cur_img.contiguous().view(v.size(0),self.encoder.max_role_count, -1, cur_img.size(-1)) #batch_size x 6 x 49 x 1024
+            role_wise_mask = role_wise_mask.contiguous().view(v.size(0),self.encoder.max_role_count, -1) #batch_size x 6 x 49 x 1024
 
-            print('role wise erased img?:', cur_img[1,:,:10,:5])
+            print('role wise erased img:', role_wise_mask[1,:,:])
 
             # now get the updated image for each separate role
             required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
-
-            updated_roles = None
 
             for rolei in range(self.encoder.max_role_count):
                 current_indices = required_indices[rolei]
@@ -171,18 +170,22 @@ class Contextualized_Reasoner_Full(nn.Module):
                 if torch.cuda.is_available():
                     current_indices = current_indices.to(torch.device('cuda'))
 
-                neighbours = torch.index_select(cur_img, 1, current_indices)
+                neighbours = torch.index_select(role_wise_mask, 1, current_indices)
 
-                all_neighbour_removed_img = neighbours[:,0,:,:] * neighbours[:,1,:,:] * neighbours[:,2,:,:] * neighbours[:,3,:,:] * neighbours[:,4,:,:]
+                all_neighbour_removed_mask = neighbours[:,0,:] * neighbours[:,1,:] * neighbours[:,2,:] * neighbours[:,3,:] * neighbours[:,4,:]
 
                 if rolei == 0:
-                    updated_roles = all_neighbour_removed_img.unsqueeze(1)
+                    updated_roles_mask = all_neighbour_removed_mask.unsqueeze(1)
                 else:
-                    updated_roles = torch.cat((updated_roles.clone(), all_neighbour_removed_img.unsqueeze(1)), 1)
+                    updated_roles_mask = torch.cat((updated_roles_mask.clone(), all_neighbour_removed_mask.unsqueeze(1)), 1)
 
-            print('all neighbour uodated img :', updated_roles[1,:,:10,:5])
+            print('all neighbour updated mask :', updated_roles_mask[1,:,:])
 
-            updated_img = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
+            updated_roles = img * updated_roles_mask.unsqueeze(-1).contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
+
+            print('all neighbour updated img :', updated_roles_mask[1,:2,:5,:5])
+
+            updated_img = updated_roles
 
             #print('all neighbour uodated img :', updated_img.size(), updated_img[0,:10,:5])
 
