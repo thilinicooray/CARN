@@ -145,7 +145,7 @@ class Contextualized_Reasoner_Full(nn.Module):
             added_img = added_img.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, added_img.size(-1))
             # update regions using the gate
             # can we mask out areas of context, so what is remaining is what we want
-            updated_img = img - added_img * img
+            updated_img = added_img * img
 
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
@@ -244,10 +244,9 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     img_embedding_size = 512
 
     covnet = vgg16_modified()
-    '''img_refiner = nn.Sequential(
+    img_refiner = nn.Sequential(
         nn.Linear(img_embedding_size, img_embedding_size),
-    )'''
-    img_refiner = FCNet([img_embedding_size, img_embedding_size])
+    )
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
