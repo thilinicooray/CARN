@@ -248,6 +248,6 @@ def build_top_down_query_ctx_with_img_recons(n_roles, n_verbs, num_ans_classes, 
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, flatten_img, reconstruct_img, encoder)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, flatten_img, reconstruct_img, classifier, encoder)
 
 
