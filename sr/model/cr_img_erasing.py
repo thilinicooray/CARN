@@ -41,10 +41,11 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Contextualized_Reasoner_Full(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, updated_query_composer,
+    def __init__(self, convnet, img_refiner, role_emb, verb_emb, query_composer, updated_query_composer,
                  v_att, q_net, v_net, neighbour_attention, resize_ctx, Dropout_C, flattened_ctx_img, classifier, encoder):
         super(Contextualized_Reasoner_Full, self).__init__()
         self.convnet = convnet
+        self.img_refiner = img_refiner
         self.role_emb = role_emb
         self.verb_emb = verb_emb
         self.query_composer = query_composer
@@ -85,6 +86,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
+        img = self.img_refiner(img)
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -282,6 +284,14 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     img_embedding_size = 512
 
     covnet = vgg16_modified()
+
+    '''img_refiner = nn.Sequential(
+        nn.Linear(hidden_size, hidden_size),
+        nn.BatchNorm1d(hidden_size),
+        nn.ReLU(),
+    )'''
+    img_refiner = nn.Linear(hidden_size, hidden_size)
+
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
@@ -297,7 +307,7 @@ def build_contextualized_reasoner_full(n_roles, n_verbs, num_ans_classes, encode
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    return Contextualized_Reasoner_Full(covnet, role_emb, verb_emb, query_composer, updated_query_composer, v_att, q_net,
+    return Contextualized_Reasoner_Full(covnet, img_refiner, role_emb, verb_emb, query_composer, updated_query_composer, v_att, q_net,
                                         v_net, neighbour_attention, resize_ctx, Dropout_C, flattened_ctx_img, classifier, encoder)
 
 
