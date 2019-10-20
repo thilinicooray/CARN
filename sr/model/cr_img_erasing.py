@@ -155,7 +155,7 @@ class Contextualized_Reasoner_Full(nn.Module):
                 for erase_col in range(erase_size):
                     role_wise_mask[all_index, select_index_row+erase_row, select_index_col+erase_col] = 0
 
-            role_wise_mask = torch.autograd.Variable(torch.from_numpy(role_wise_mask), requires_grad=False).cuda()
+            role_wise_mask = torch.autograd.Variable(torch.from_numpy(role_wise_mask).type(torch.FloatTensor), requires_grad=False).cuda()
 
             role_wise_mask = role_wise_mask.contiguous().view(v.size(0),self.encoder.max_role_count, -1) #batch_size x 6 x 49 x 1024
 
