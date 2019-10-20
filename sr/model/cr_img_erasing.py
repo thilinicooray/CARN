@@ -154,11 +154,11 @@ class Contextualized_Reasoner_Full(nn.Module):
                 for erase_col in range(erase_size):
                     cur_img[all_index, select_index_row+erase_row, select_index_col+erase_col, :] = 0
 
-            print(cur_img[0,:5,:5,:5],'\n', cur_img[3,:5,:5,:5],'\n',cur_img[6,:5,:5,:5])
-
             cur_img = torch.autograd.Variable(torch.from_numpy(cur_img), requires_grad=False).cuda()
 
             cur_img = cur_img.contiguous().view(v.size(0),self.encoder.max_role_count, -1, cur_img.size(-1)) #batch_size x 6 x 49 x 1024
+
+            print('role wise erased img?:', cur_img[0,:,:10,:5])
 
             # now get the updated image for each separate role
             required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
@@ -179,6 +179,8 @@ class Contextualized_Reasoner_Full(nn.Module):
                     updated_roles = all_neighbour_removed_img.unsqueeze(1)
                 else:
                     updated_roles = torch.cat((updated_roles.clone(), all_neighbour_removed_img.unsqueeze(1)), 1)
+
+            print('all neighbour uodated img :', updated_roles[0,:,:10,:5])
 
             updated_img = updated_roles.contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
 
