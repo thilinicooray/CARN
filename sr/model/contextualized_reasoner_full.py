@@ -106,10 +106,8 @@ class Contextualized_Reasoner_Full(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        flat_img = self.flattened_ctx_img(img.contiguous().view(batch_size * self.encoder.max_role_count, -1))
-
         #out = q_repr * v_repr
-        mfb_iq_eltwise = torch.mul(q_repr, v_repr) + torch.mul(q_emb, flat_img)
+        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -147,8 +145,6 @@ class Contextualized_Reasoner_Full(nn.Module):
             # can we mask out areas of context, so what is remaining is what we want
             updated_img = added_img * img
 
-            flat_img = self.flattened_ctx_img(updated_img.contiguous().view(batch_size * self.encoder.max_role_count, -1))
-
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
@@ -157,7 +153,7 @@ class Contextualized_Reasoner_Full(nn.Module):
             v_repr_q = self.v_net(v_emb_q)
             q_repr_q = self.q_net(updated_q_emb)
 
-            ctx_aware_query_out = torch.mul(q_repr_q, v_repr_q) + torch.mul(updated_q_emb, flat_img)
+            ctx_aware_query_out = torch.mul(q_repr_q, v_repr_q)
 
             combined_out = ctx_aware_query_out
 
