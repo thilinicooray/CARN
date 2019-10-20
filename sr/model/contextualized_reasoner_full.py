@@ -145,7 +145,7 @@ class Contextualized_Reasoner_Full(nn.Module):
             added_img = added_img.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, added_img.size(-1))
             # update regions using the gate
             # can we mask out areas of context, so what is remaining is what we want
-            updated_img = added_img * img
+            updated_img = img - added_img * img
 
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
