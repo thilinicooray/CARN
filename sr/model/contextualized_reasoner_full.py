@@ -67,7 +67,6 @@ class Contextualized_Reasoner_Full(nn.Module):
         n_heads = 1
 
         img_features = self.convnet(v_org)
-        print(img_features.size())
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
