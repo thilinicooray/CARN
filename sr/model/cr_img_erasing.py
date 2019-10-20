@@ -183,7 +183,7 @@ class Contextualized_Reasoner_Full(nn.Module):
 
             updated_roles = img * updated_roles_mask.unsqueeze(-1).contiguous().view(v.size(0)* self.encoder.max_role_count, 49, -1)
 
-            print('all neighbour updated img :', updated_roles_mask[:5,:5,:5])
+            print('all neighbour updated img :', updated_roles[:5,:5,:5])
 
             updated_img = updated_roles
 
