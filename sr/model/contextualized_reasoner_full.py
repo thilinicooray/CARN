@@ -150,8 +150,8 @@ class Contextualized_Reasoner_Full(nn.Module):
             # context aware query reasoning
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            att_q = self.v_att(img, updated_q_emb)
-            v_emb_q = (att_q * img).sum(1)
+            att_q = self.v_att(updated_img, updated_q_emb)
+            v_emb_q = (att_q * updated_img).sum(1)
             v_repr_q = self.v_net(v_emb_q)
             q_repr_q = self.q_net(updated_q_emb)
 
@@ -172,8 +172,8 @@ class Contextualized_Reasoner_Full(nn.Module):
             # calculating attention for each answer
             #ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
             #out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
-            out = mfb_l2_t + self.flattened_ctx_img(updated_img.contiguous().view(updated_img.size(0), -1))
-
+            #out = mfb_l2_t + self.flattened_ctx_img(updated_img.contiguous().view(updated_img.size(0), -1))
+            out = mfb_l2_t
             gate = torch.sigmoid(q_list[-1] * q_repr_q)
             out = gate * ans_list[-1] + (1-gate) * out
 
