@@ -86,7 +86,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
 
-        img = self.img_refiner(img)
+        #img = self.img_refiner(img)
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -172,7 +172,7 @@ class Contextualized_Reasoner_Full(nn.Module):
             # calculating attention for each answer
             #ans_att = F.softmax(self.Dropout_C(self.multi_ans_attention(mfb_l2_i + mfb_l2_q + mfb_l2_t)))
             #out = torch.matmul(ans_att, torch.cat([mfb_l2_i.unsqueeze(1), mfb_l2_q.unsqueeze(1), mfb_l2_t.unsqueeze(1)],1))
-            out = mfb_l2_t 
+            out = mfb_l2_t
             #out = mfb_l2_t
             gate = torch.sigmoid(q_list[-1] * q_repr_q)
             out = gate * ans_list[-1] + (1-gate) * out
