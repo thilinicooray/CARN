@@ -214,7 +214,12 @@ def main():
             {'params': model.resize_ctx.parameters()},
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
-            {'params': model.flattened_ctx_img.parameters()},
+            {'params': model.v_att_i.parameters()},
+            {'params': model.q_net_i.parameters()},
+            {'params': model.v_net_i.parameters()},
+            {'params': model.v_att_q.parameters()},
+            {'params': model.q_net_q.parameters()},
+            {'params': model.v_net_q.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
