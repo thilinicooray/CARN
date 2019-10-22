@@ -5,6 +5,8 @@ We directly use bottom up VQA like mechanism for SR
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 from ..lib.attention import Attention
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
@@ -71,6 +73,17 @@ class Top_Down_Baseline(nn.Module):
         q_repr = self.q_net(q_emb)
 
         out = torch.mul(q_repr, v_repr)
+
+        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+
+        mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
+
+        mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, 1)   # N x 1 x 1000 x 5
+        mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
+        mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
+        mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
+        mfb_l2 = F.normalize(mfb_sign_sqrt)
+        out = mfb_l2
 
         logits = self.classifier(out)
 
