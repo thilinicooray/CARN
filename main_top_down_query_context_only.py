@@ -209,6 +209,7 @@ def main():
             {'params': model.query_composer.parameters()},
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
+            {'params': model.q_net_updated.parameters()},
             {'params': model.v_net.parameters()},
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},

@@ -40,7 +40,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention,
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, q_net_updated, v_net, neighbour_attention,
                  updated_query_composer, Dropout_C, flatten_img, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
@@ -49,6 +49,7 @@ class Top_Down_Baseline(nn.Module):
         self.query_composer = query_composer
         self.v_att = v_att
         self.q_net = q_net
+        self.q_net_updated = q_net_updated
         self.v_net = v_net
         self.updated_query_composer = updated_query_composer
         self.neighbour_attention = neighbour_attention
@@ -137,11 +138,12 @@ class Top_Down_Baseline(nn.Module):
             att = self.v_att(img, updated_q_emb)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
+            q_repr = self.q_net_updated(updated_q_emb)
 
             #prev
             #mfb_iq_eltwise = torch.mul(q_repr, v_repr)
             # new q has unnecessary stuff. try removing them
-            mfb_iq_eltwise = torch.mul(q_list[-1], v_repr)
+            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
             mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -239,6 +241,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
+    q_net_updated = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
@@ -248,7 +251,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
+    return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,q_net_updated,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C, flatten_img, classifier, encoder)
 
 
