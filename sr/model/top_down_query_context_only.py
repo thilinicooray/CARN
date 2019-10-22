@@ -70,7 +70,7 @@ class Top_Down_Baseline(nn.Module):
         flattened_img = flattened_img.expand(self.encoder.max_role_count, flattened_img.size(0), flattened_img.size(1))
 
         flattened_img = flattened_img.transpose(0,1)
-        flattened_img = flattened_img.contiguous().view(batch_size * self.encoder.max_role_count, -1, flattened_img.size(-1))
+        flattened_img = flattened_img.contiguous().view(batch_size * self.encoder.max_role_count, flattened_img.size(-1))
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
@@ -159,7 +159,7 @@ class Top_Down_Baseline(nn.Module):
                                 , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
 
             gate = F.softmax(torch.cat([sim_old, sim_new], -1), dim = -1)
-            print(gate.size())
+            print('gate ',gate.size())
 
 
             #gate = torch.sigmoid(q_emb * updated_q_emb)
