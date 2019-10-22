@@ -264,7 +264,7 @@ class Contextualized_Reasoner_Full(nn.Module):
         positive_neg_rank_img = torch.bmm(current_sample_img.view(current_sample_img.size(0), 1, current_sample_img.size(1))
                           , (current_sample_q - negative_samples_q).view(negative_samples_q.size(0), negative_samples_q.size(1), 1))
 
-        marginal_rank_loss_img = torch.sum(torch.max(torch.zeros(margin_img.size(0)).cuda(), margin_img.squeeze() - positive_neg_rank_img.squeeze()),0)/batch_size
+        marginal_rank_loss_img = torch.mean(torch.max(torch.zeros(margin_img.size(0)).cuda(), margin_img.squeeze() - positive_neg_rank_img.squeeze()),0)
 
 
         margin_q = torch.bmm(current_sample_img.view(current_sample_img.size(0), 1, current_sample_img.size(1))
@@ -273,9 +273,9 @@ class Contextualized_Reasoner_Full(nn.Module):
         positive_neg_rank_q = torch.bmm(current_sample_q.view(current_sample_q.size(0), 1, current_sample_q.size(1))
                                           , (current_sample_img - negative_samples_img).view(negative_samples_img.size(0), negative_samples_img.size(1), 1))
 
-        marginal_rank_loss_q = torch.sum(torch.max(torch.zeros(margin_q.size(0)).cuda(), margin_q.squeeze() - positive_neg_rank_q.squeeze()),0)/batch_size
+        marginal_rank_loss_q = torch.mean(torch.max(torch.zeros(margin_q.size(0)).cuda(), margin_q.squeeze() - positive_neg_rank_q.squeeze()),0)
 
-        return frame_entropy_loss, marginal_rank_loss_img, marginal_rank_loss_q
+        return frame_entropy_loss, 5*marginal_rank_loss_img, 5*marginal_rank_loss_q
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
