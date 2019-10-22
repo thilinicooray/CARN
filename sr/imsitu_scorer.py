@@ -22,8 +22,6 @@ class imsitu_scorer():
             self.all_res = {}
             self.correct_roles = {}
         self.topk_issue = {}
-        self.all_words = json.load(open('data/allnverbsall_imsitu_words_nl2glovematching.json'))
-        self.labelid2nlword = json.load(open('data/all_imsitu_words_id2nl.json'))
 
     def clear(self):
         self.score_cards = {}

@@ -1,5 +1,6 @@
 import torch
 import torchvision as tv
+import json
 
 #This is the class which encodes training set json in the following structure
 #todo: the structure
@@ -16,6 +17,8 @@ class imsitu_encoder():
         self.max_role_count = 0
         self.question_words = {}
         self.vrole_question = {}
+        self.all_words = json.load(open('data/allnverbsall_imsitu_words_nl2glovematching.json'))
+        self.labelid2nlword = json.load(open('data/all_imsitu_words_id2nl.json'))
 
         self.agent_roles = ['agent', 'individuals','brancher', 'agenttype', 'gatherers', 'agents', 'teacher', 'traveler', 'mourner',
                             'seller', 'boaters', 'blocker', 'farmer']
