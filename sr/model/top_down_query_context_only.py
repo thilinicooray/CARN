@@ -158,8 +158,8 @@ class Top_Down_Baseline(nn.Module):
             sim_new = torch.bmm(out.view(out.size(0), 1, out.size(1))
                                 , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
 
-            gate = F.softmax(torch.cat([sim_old, sim_new], -1), dim = -1)
-            print('gate ',gate.size())
+            gate = F.softmax(torch.cat([sim_old, sim_new], -1), dim = -1).transpose(1,2)
+            print(gate)
 
 
             #gate = torch.sigmoid(q_emb * updated_q_emb)
