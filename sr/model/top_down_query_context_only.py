@@ -122,8 +122,8 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        q_list.append(q_repr)
-        ans_list.append(out)
+        #q_list.append(q_repr)
+        #ans_list.append(out)
 
         all_feat = out.unsqueeze(1)
 
@@ -158,7 +158,7 @@ class Top_Down_Baseline(nn.Module):
 
             #new gate based on similarity to the original img
 
-            '''all_feat = torch.cat([all_feat.clone(), out.unsqueeze(1)],1)
+            all_feat = torch.cat([all_feat.clone(), out.unsqueeze(1)],1)
 
             num_turns = all_feat.size(1)
 
@@ -173,14 +173,14 @@ class Top_Down_Baseline(nn.Module):
             similarity = similarity.contiguous().view(flattened_img.size(0), num_turns)
 
             gate = F.softmax(similarity, dim = -1).unsqueeze(-1)
-            out = torch.sum(gate * all_feat,1)'''
+            out = torch.sum(gate * all_feat,1)
 
-            gate = torch.sigmoid(q_emb * updated_q_emb)
-            out = gate * ans_list[-1] + (1-gate) * out
+            #gate = torch.sigmoid(q_emb * updated_q_emb)
+            #out = gate * ans_list[-1] + (1-gate) * out
 
 
-            q_list.append(q_repr)
-            ans_list.append(out)
+            #q_list.append(q_repr)
+            #ans_list.append(out)
 
         logits = self.classifier(out)
 
