@@ -122,7 +122,9 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        #q_list.append(q_repr)
+        q_list.append(q_repr)
+        ans_list.append(out)
+
         all_feat = out.unsqueeze(1)
 
         for i in range(1):
@@ -138,7 +140,7 @@ class Top_Down_Baseline(nn.Module):
             att = self.v_att(img, updated_q_emb)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(updated_q_emb)
+            q_repr = self.q_net_updated(updated_q_emb)
 
             #prev
             #mfb_iq_eltwise = torch.mul(q_repr, v_repr)
@@ -156,7 +158,7 @@ class Top_Down_Baseline(nn.Module):
 
             #new gate based on similarity to the original img
 
-            all_feat = torch.cat([all_feat.clone(), out.unsqueeze(1)],1)
+            '''all_feat = torch.cat([all_feat.clone(), out.unsqueeze(1)],1)
 
             num_turns = all_feat.size(1)
 
@@ -170,19 +172,15 @@ class Top_Down_Baseline(nn.Module):
                                    , all_feat_flat.view(all_feat_flat.size(0), all_feat_flat.size(1), 1))
             similarity = similarity.contiguous().view(flattened_img.size(0), num_turns)
 
-            '''sim_old = torch.bmm(ans_list[-1].view(ans_list[-1].size(0), 1, ans_list[-1].size(1))
-                                , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
-            sim_new = torch.bmm(out.view(out.size(0), 1, out.size(1))
-                                , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))'''
-
             gate = F.softmax(similarity, dim = -1).unsqueeze(-1)
+            out = torch.sum(gate * all_feat,1)'''
 
-            #gate = torch.sigmoid(q_emb * updated_q_emb)
-            #out = gate[:,0] * ans_list[-1] + gate[:,1] * out
-            out = torch.sum(gate * all_feat,1)
+            gate = torch.sigmoid(q_emb * updated_q_emb)
+            out = gate * ans_list[-1] + (1-gate) * out
 
-            #q_list.append(q_repr)
-            #ans_list.append(out)
+
+            q_list.append(q_repr)
+            ans_list.append(out)
 
         logits = self.classifier(out)
 
