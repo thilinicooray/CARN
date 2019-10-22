@@ -122,10 +122,10 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        q_list.append(q_repr)
-        ans_list.append(out)
+        #q_list.append(q_repr)
+        all_feat = out.unsqueeze(1)
 
-        for i in range(1):
+        for i in range(2):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -155,18 +155,34 @@ class Top_Down_Baseline(nn.Module):
             out = mfb_l2
 
             #new gate based on similarity to the original img
-            sim_old = torch.bmm(ans_list[-1].view(ans_list[-1].size(0), 1, ans_list[-1].size(1))
+
+            all_feat = torch.cat([all_feat.clone(), out.unsqueeze(1)],1)
+
+            num_turns = all_feat.size(1)
+
+            all_feat_flat = all_feat.contiguous().view(-1, all_feat.size(-1))
+
+            expanded_flattened_img = flattened_img.expand(num_turns, flattened_img.size(0), flattened_img.size(1))
+            expanded_flattened_img = expanded_flattened_img.transpose(0,1)
+            expanded_flattened_img = expanded_flattened_img.contiguous().view(-1, expanded_flattened_img.size(-1))
+
+            similarity = torch.bmm(expanded_flattened_img.view(expanded_flattened_img.size(0), 1, expanded_flattened_img.size(1))
+                                   , all_feat_flat.view(all_feat_flat.size(0), all_feat_flat.size(1), 1))
+            similarity = similarity.contiguous().view(flattened_img.size(0), num_turns)
+
+            '''sim_old = torch.bmm(ans_list[-1].view(ans_list[-1].size(0), 1, ans_list[-1].size(1))
                                 , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
             sim_new = torch.bmm(out.view(out.size(0), 1, out.size(1))
-                                , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
+                                , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))'''
 
-            gate = F.softmax(torch.cat([sim_old, sim_new], -1), dim = -1).transpose(1,2)
+            gate = F.softmax(similarity, dim = -1).unsqueeze(-1)
 
             #gate = torch.sigmoid(q_emb * updated_q_emb)
-            out = gate[:,0] * ans_list[-1] + gate[:,1] * out
+            #out = gate[:,0] * ans_list[-1] + gate[:,1] * out
+            out = torch.sum(gate * all_feat,1)
 
-            q_list.append(q_repr)
-            ans_list.append(out)
+            #q_list.append(q_repr)
+            #ans_list.append(out)
 
         logits = self.classifier(out)
 
