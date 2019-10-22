@@ -24,7 +24,7 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, classifier, encoder, Dropout_C):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -35,6 +35,7 @@ class Top_Down_Baseline(nn.Module):
         self.v_net = v_net
         self.classifier = classifier
         self.encoder = encoder
+        self.Dropout_C = Dropout_C
 
     def forward(self, v_org, gt_verb):
 
@@ -123,7 +124,9 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
+    Dropout_C = nn.Dropout(0.1)
+
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                                                           v_net, classifier, encoder)
+                                                           v_net, classifier, encoder, Dropout_C)
 
 
