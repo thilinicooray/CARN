@@ -116,7 +116,7 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
-        for i in range(2):
+        for i in range(1):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -223,7 +223,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
+    neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
