@@ -190,9 +190,58 @@ class Contextualized_Reasoner_Full(nn.Module):
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        return role_label_pred
+        all_roles_img = ctx_aware_img_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+        all_roles_q = ctx_aware_query_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-    def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
+        if self.training:
+
+            #getting_negative samples - all other roles in the frame
+            required_role_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
+            negative_samples_img = None
+            negative_samples_q = None
+
+            current_sample_img = None
+            current_sample_q = None
+
+            for rolei in range(self.encoder.max_role_count):
+                current_indices = required_role_indices[rolei]
+                current_indices = torch.tensor(current_indices)
+                if torch.cuda.is_available():
+                    current_indices = current_indices.to(torch.device('cuda'))
+
+                neighbours_img = torch.index_select(all_roles_img, 1, current_indices)
+                neighbours_q = torch.index_select(all_roles_q, 1, current_indices)
+
+                current_role_img = all_roles_img[:,rolei]
+                current_role_img = current_role_img.expand(self.encoder.max_role_count - 1, current_role_img.size(0), current_role_img.size(1))
+                current_role_img = current_role_img.transpose(0,1)
+
+                current_role_q = all_roles_q[:,rolei]
+                current_role_q = current_role_q.expand(self.encoder.max_role_count - 1, current_role_q.size(0), current_role_q.size(1))
+                current_role_q = current_role_q.transpose(0,1)
+
+                if rolei == 0:
+                    negative_samples_img = neighbours_img.unsqueeze(1)
+                    negative_samples_q = neighbours_q.unsqueeze(1)
+                    current_sample_img= current_role_img.unsqueeze(1)
+                    current_sample_q = current_role_q.unsqueeze(1)
+                else:
+                    negative_samples_img = torch.cat((negative_samples_img.clone(), neighbours_img.unsqueeze(1)), 1)
+                    negative_samples_q = torch.cat((negative_samples_q.clone(), neighbours_q.unsqueeze(1)), 1)
+                    current_sample_img = torch.cat((current_sample_img.clone(), current_role_img.unsqueeze(1)), 1)
+                    current_sample_q = torch.cat((current_sample_q.clone(), current_role_q.unsqueeze(1)), 1)
+
+            negative_samples_img = negative_samples_img.contiguous().view(batch_size* (self.encoder.max_role_count - 1), -1)
+            negative_samples_q = negative_samples_q.contiguous().view(batch_size* (self.encoder.max_role_count - 1), -1)
+            current_sample_img = current_sample_img.contiguous().view(batch_size* (self.encoder.max_role_count - 1), -1)
+            current_sample_q = current_sample_q.contiguous().view(batch_size* (self.encoder.max_role_count - 1), -1)
+
+            return role_label_pred, negative_samples_img, negative_samples_q, current_sample_img, current_sample_q
+
+        else:
+            return role_label_pred
+
+    def calculate_loss(self, gt_verbs, role_label_pred, gt_labels, negative_samples_img, negative_samples_q, current_sample_img, current_sample_q):
 
         batch_size = role_label_pred.size()[0]
 
@@ -205,8 +254,28 @@ class Contextualized_Reasoner_Full(nn.Module):
                 frame_loss = frame_loss/len(self.encoder.verb2_role_dict[self.encoder.verb_list[gt_verbs[i]]])
                 loss += frame_loss
 
-        final_loss = loss/batch_size
-        return final_loss
+        frame_entropy_loss = loss/batch_size
+
+        #rank loss = correct_img* correct_q > correct_img* wrong_q & wrong_img* correct_q
+
+        margin_img = torch.bmm(current_sample_q.view(current_sample_q.size(0), 1, current_sample_q.size(1))
+                           , negative_samples_q.view(negative_samples_q.size(0), negative_samples_q.size(1), 1))
+
+        positive_neg_rank_img = torch.bmm(current_sample_img.view(current_sample_img.size(0), 1, current_sample_img.size(1))
+                          , (current_sample_q - negative_samples_q).view(negative_samples_q.size(0), negative_samples_q.size(1), 1))
+
+        marginal_rank_loss_img = torch.mean(torch.max(torch.zeros(margin_img.size(0)).cuda(), margin_img.squeeze() - positive_neg_rank_img.squeeze()),0)/batch_size
+
+
+        margin_q = torch.bmm(current_sample_img.view(current_sample_img.size(0), 1, current_sample_img.size(1))
+                               , negative_samples_img.view(negative_samples_img.size(0), negative_samples_img.size(1), 1))
+
+        positive_neg_rank_q = torch.bmm(current_sample_q.view(current_sample_q.size(0), 1, current_sample_q.size(1))
+                                          , (current_sample_img - negative_samples_img).view(negative_samples_img.size(0), negative_samples_img.size(1), 1))
+
+        marginal_rank_loss_q = torch.mean(torch.max(torch.zeros(margin_q.size(0)).cuda(), margin_q.squeeze() - positive_neg_rank_q.squeeze()),0)/batch_size
+
+        return frame_entropy_loss, marginal_rank_loss_img, marginal_rank_loss_q
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):

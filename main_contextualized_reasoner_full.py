@@ -39,9 +39,9 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = pmodel(img, verb)
-            loss = model.calculate_loss(verb, role_predict, labels)
-
+            role_predict, negative_samples_img, negative_samples_q, current_sample_img, current_sample_q = pmodel(img, verb)
+            frame_entropy_loss, marginal_rank_loss_img, marginal_rank_loss_q = model.calculate_loss(verb, role_predict, labels, negative_samples_img, negative_samples_q, current_sample_img, current_sample_q)
+            loss = frame_entropy_loss + marginal_rank_loss_img + marginal_rank_loss_q
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_norm)
@@ -58,10 +58,10 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
             if total_steps % print_freq == 0:
                 top1_a = top1.get_average_results_nouns()
                 top5_a = top5.get_average_results_nouns()
-                print ("{},{},{}, {} , {}, loss = {:.2f}, avg loss = {:.2f}"
+                print ("{},{},{}, {} , {}, loss = {:.2f}, avg loss = {:.2f}, e_loss = {:.2f},i_loss = {:.4f},q_loss = {:.4f},"
                        .format(total_steps-1,epoch,i, utils.format_dict(top1_a, "{:.2f}", "1-"),
                                utils.format_dict(top5_a,"{:.2f}","5-"), loss.item(),
-                               train_loss / ((total_steps-1)%eval_frequency) ))
+                               train_loss / ((total_steps-1)%eval_frequency), frame_entropy_loss.item(),marginal_rank_loss_img.item(),marginal_rank_loss_q.item() ))
 
 
             if total_steps % eval_frequency == 0:
