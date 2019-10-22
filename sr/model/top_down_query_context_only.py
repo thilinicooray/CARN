@@ -40,7 +40,8 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention,
+                 updated_query_composer, Dropout_C, flatten_img, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -52,6 +53,7 @@ class Top_Down_Baseline(nn.Module):
         self.updated_query_composer = updated_query_composer
         self.neighbour_attention = neighbour_attention
         self.Dropout_C = Dropout_C
+        self.flatten_img = flatten_img
         self.classifier = classifier
         self.encoder = encoder
 
@@ -63,6 +65,12 @@ class Top_Down_Baseline(nn.Module):
 
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
+
+        flattened_img = self.flatten_img(img_features.view(-1, 512*7*7))
+        flattened_img = flattened_img.expand(self.encoder.max_role_count, flattened_img.size(0), flattened_img.size(1))
+
+        flattened_img = flattened_img.transpose(0,1)
+        flattened_img = flattened_img.contiguous().view(batch_size * self.encoder.max_role_count, -1, flattened_img.size(-1))
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
@@ -129,10 +137,11 @@ class Top_Down_Baseline(nn.Module):
             att = self.v_att(img, updated_q_emb)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(updated_q_emb)
 
-            #out = q_repr * v_repr
-            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+            #prev
+            #mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+            # new q has unnecessary stuff. try removing them
+            mfb_iq_eltwise = torch.mul(q_list[-1], v_repr)
 
             mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -143,8 +152,18 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out
+            #new gate based on similarity to the original img
+            sim_old = torch.bmm(ans_list[-1].view(ans_list[-1].size(0), 1, ans_list[-1].size(1))
+                                , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
+            sim_new = torch.bmm(out.view(out.size(0), 1, out.size(1))
+                                , flattened_img.view(flattened_img.size(0), flattened_img.size(1), 1))
+
+            gate = F.softmax(torch.cat([sim_old, sim_new], -1), dim = -1)
+            print(gate.size())
+
+
+            #gate = torch.sigmoid(q_emb * updated_q_emb)
+            out = gate[:,0] * ans_list[-1] + gate[:,1] * out
 
             q_list.append(q_repr)
             ans_list.append(out)
@@ -226,10 +245,12 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(8, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
+    flatten_img = weight_norm(nn.Linear(512*7*7, 1024), dim=None)
+
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, flatten_img, classifier, encoder)
 
 
