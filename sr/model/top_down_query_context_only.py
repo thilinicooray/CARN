@@ -138,7 +138,7 @@ class Top_Down_Baseline(nn.Module):
             att = self.v_att(img, updated_q_emb)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
-            q_repr = self.q_net_updated(updated_q_emb)
+            q_repr = self.q_net(updated_q_emb)
 
             #prev
             #mfb_iq_eltwise = torch.mul(q_repr, v_repr)
