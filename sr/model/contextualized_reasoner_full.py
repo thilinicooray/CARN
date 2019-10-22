@@ -275,6 +275,8 @@ class Contextualized_Reasoner_Full(nn.Module):
 
         marginal_rank_loss_q = torch.mean(torch.max(torch.zeros(margin_q.size(0)).cuda(), margin_q.squeeze() - positive_neg_rank_q.squeeze()),0)
 
+        print('margin and val ', margin_q.squeeze(), positive_neg_rank_q.squeeze())
+
         return frame_entropy_loss, 5*marginal_rank_loss_img, 5*marginal_rank_loss_q
 
 class MultiHeadedAttention(nn.Module):
