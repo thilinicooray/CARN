@@ -97,13 +97,10 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        sec_ans = self.secondary_ans(torch.cat([ctx_erased_v_emb, q_emb],-1))
+        logits_vqa = self.classifier(out )
+        logits_obj = self.obj_cls(ctx_erased_v_emb)
 
-        logits_vqa = self.classifier(out + sec_ans)
-        #logits_obj = self.obj_cls(ctx_erased_v_emb)
-
-        #logits = logits_vqa + logits_obj
-        logits = logits_vqa
+        logits = logits_vqa + logits_obj
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 

@@ -214,7 +214,6 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.classifier.parameters()},
             {'params': model.obj_cls.parameters()},
-            {'params': model.secondary_ans.parameters()}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
