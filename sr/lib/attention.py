@@ -77,7 +77,6 @@ class Context_Erased_Attention(nn.Module):
 
 
         final = updated_att.contiguous().view(-1, updated_att.size(-1), 1)
-        print(final.size())
 
         return final
 
