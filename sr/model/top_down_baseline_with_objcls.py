@@ -129,18 +129,24 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
+    '''classifier = SimpleClassifier(
+        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)'''
 
-    '''obj_cls = nn.Sequential(
+    classifier = nn.Sequential(
+        nn.Linear(hidden_size, hidden_size*2),
+        nn.BatchNorm1d(hidden_size*2),
+        nn.ReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(hidden_size*2, num_ans_classes)
+    )
+
+    obj_cls = nn.Sequential(
         nn.Linear(img_embedding_size, hidden_size*2),
         nn.BatchNorm1d(hidden_size*2),
         nn.ReLU(),
         nn.Dropout(0.5),
         nn.Linear(hidden_size*2, num_ans_classes)
-    )'''
-    obj_cls = SimpleClassifier(
-        img_embedding_size, 2 * hidden_size, num_ans_classes, 0.5)
+    )
 
     Dropout_C = nn.Dropout(0.1)
 
