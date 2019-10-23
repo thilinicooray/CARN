@@ -45,6 +45,7 @@ class Context_Erased_Attention(nn.Module):
         """
         logits = self.logits(v, q)
         w = logits
+        single_att = nn.functional.softmax(logits, 1)
 
         w = w.contiguous().view(mask.size(0), mask.size(1), -1)
         w_ctx = w * mask.unsqueeze(-1)
@@ -74,9 +75,9 @@ class Context_Erased_Attention(nn.Module):
                 updated_att = torch.cat((updated_att.clone(), updated_cur_role_att.unsqueeze(1)), 1)
 
 
-        final = updated_att.contiguous().view(-1, updated_att.size(-1), 1)
+        context_erased_att = updated_att.contiguous().view(-1, updated_att.size(-1), 1)
 
-        return final
+        return single_att, context_erased_att
 
     def logits(self, v, q):
         num_objs = v.size(1)

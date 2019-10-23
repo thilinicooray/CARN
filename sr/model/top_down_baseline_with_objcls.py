@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..lib.attention import Attention
+from ..lib.attention import Context_Erased_Attention
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
 import torchvision as tv
@@ -40,6 +40,10 @@ class Top_Down_Baseline(nn.Module):
 
     def forward(self, v_org, gt_verb):
 
+        role_oh_encoding = self.encoder.get_verb2role_encoing_batch(gt_verb)
+        if torch.cuda.is_available():
+            role_oh_encoding = role_oh_encoding.to(torch.device('cuda'))
+
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
@@ -69,8 +73,9 @@ class Top_Down_Baseline(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
 
-        att = self.v_att(img, q_emb)
+        att, context_erased_att = self.v_att(img, q_emb, role_oh_encoding)
         v_emb = (att * img).sum(1)
+        ctx_erased_v_emb = (context_erased_att * img).sum(1)
 
         '''print(' analysis ')
         att1 = att.contiguous().view(batch_size,6, 7,7)
@@ -92,7 +97,7 @@ class Top_Down_Baseline(nn.Module):
         out = mfb_l2
 
         logits_vqa = self.classifier(out)
-        logits_obj = self.obj_cls(v_emb)
+        logits_obj = self.obj_cls(ctx_erased_v_emb)
 
         logits = logits_vqa + logits_obj
 
@@ -126,19 +131,11 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
+    v_att = Context_Erased_Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-    '''classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)'''
-
-    classifier = nn.Sequential(
-        nn.Linear(hidden_size, hidden_size*2),
-        nn.BatchNorm1d(hidden_size*2),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(hidden_size*2, num_ans_classes)
-    )
+    classifier = SimpleClassifier(
+        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     obj_cls = nn.Sequential(
         nn.Linear(img_embedding_size, hidden_size*2),
