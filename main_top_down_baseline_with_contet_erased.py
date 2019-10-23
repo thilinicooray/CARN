@@ -13,14 +13,14 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
     print_freq = 400
     dev_score_list = []
 
-    if gpu_mode >= 0 :
+    '''if gpu_mode >= 0 :
         ngpus = 2
         device_array = [i for i in range(0,ngpus)]
 
         pmodel = torch.nn.DataParallel(model, device_ids=device_array)
     else:
-        pmodel = model
-    #pmodel = model
+        pmodel = model'''
+    pmodel = model
 
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
@@ -134,6 +134,7 @@ def main():
     parser.add_argument("--gpuid", default=-1, help="put GPU id > -1 in GPU mode", type=int)
     parser.add_argument('--output_dir', type=str, default='./trained_models', help='Location to output the model')
     parser.add_argument('--resume_training', action='store_true', help='Resume training from the model [resume_model]')
+    parser.add_argument('--resume_training_finetune', action='store_true', help='Resume training from the model [resume_model]')
     parser.add_argument('--resume_model', type=str, default='', help='The model we resume')
     parser.add_argument('--evaluate', action='store_true', help='Only use the testing mode')
     parser.add_argument('--test', action='store_true', help='Only use the testing mode')
@@ -197,6 +198,17 @@ def main():
         utils.load_net(args.resume_model, [model])
         optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3)
         model_name = 'resume_all'
+    elif args.resume_training_finetune:
+        print('Resume training from: {}'.format(args.resume_model))
+        args.train_all = True
+        if len(args.resume_model) == 0:
+            raise Exception('[pretrained module] not specified')
+        utils.load_net(args.resume_model, [model])
+
+        utils.set_trainable(model, False)
+        utils.set_trainable(model.classifier, True)
+        optimizer = torch.optim.Adamax(model.classifier.parameters(), lr=1e-4)
+        model_name = 'finetune_cls'
 
     else:
         print('Training from the scratch.')
