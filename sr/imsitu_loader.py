@@ -24,7 +24,6 @@ class imsitu_loader(data.Dataset):
         img = self.transform(img)
 
         verb, labels = self.encoder.encode(ann)
-        print(_id, ann)
         return _id, img, verb, labels
 
     def __len__(self):
