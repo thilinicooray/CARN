@@ -46,9 +46,7 @@ class Context_Erased_Attention(nn.Module):
         q: [batch, qdim]
         """
         logits = self.logits(v, q)
-        att1 = logits.contiguous().view(64,6, 7,7)
-
-        #print('logits: ', att1[0])
+        print('logits: ', logits.size())
         w = logits
 
         w = w.contiguous().view(mask.size(0), mask.size(1), -1)
