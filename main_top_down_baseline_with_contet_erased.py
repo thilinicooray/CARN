@@ -199,7 +199,7 @@ def main():
         optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3)
         model_name = 'resume_all'
     elif args.resume_training_finetune:
-        print('Resume training from: {}'.format(args.resume_model))
+        print('Resume training from: {} for finetuning'.format(args.resume_model))
         args.train_all = True
         if len(args.resume_model) == 0:
             raise Exception('[pretrained module] not specified')
@@ -207,7 +207,7 @@ def main():
 
         utils.set_trainable(model, False)
         utils.set_trainable(model.classifier, True)
-        optimizer = torch.optim.Adamax(model.classifier.parameters(), lr=5e-4)
+        optimizer = torch.optim.Adamax(model.classifier.parameters(), lr=5e-5)
         model_name = 'finetune_cls'
 
     else:
