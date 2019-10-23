@@ -133,7 +133,7 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     obj_cls = nn.Sequential(
-        nn.Linear(hidden_size, hidden_size*2),
+        nn.Linear(img_embedding_size, hidden_size*2),
         nn.BatchNorm1d(hidden_size*2),
         nn.ReLU(),
         nn.Dropout(0.5),
