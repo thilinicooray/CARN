@@ -70,6 +70,12 @@ class Top_Down_Baseline(nn.Module):
 
         att = self.v_att(img, q_emb)
         v_emb = (att * img).sum(1)
+
+        print(' analysis ')
+        att1 = att.contiguous().view(batch_size,6, 7,7)
+
+        print(att1[0])
+        
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
