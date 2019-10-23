@@ -87,7 +87,7 @@ class Context_Erased_Attention(nn.Module):
 
         return final
 
-    def logits(self, v, q, mask):
+    def logits(self, v, q):
         num_objs = v.size(1)
         q = q.unsqueeze(1).repeat(1, num_objs, 1)
         vq = torch.cat((v, q), 2)
