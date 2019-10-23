@@ -47,7 +47,7 @@ class Context_Erased_Attention(nn.Module):
         w = logits
         single_att = nn.functional.softmax(logits, 1)
 
-        w = w.contiguous().view(mask.size(0), mask.size(1), -1)
+        w = single_att.contiguous().view(mask.size(0), mask.size(1), -1)
         w_ctx = w * mask.unsqueeze(-1)
 
         required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
