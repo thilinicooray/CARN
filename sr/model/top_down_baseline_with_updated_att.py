@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..lib.attention import Attention
+from ..lib.attention import Context_Erased_Attention
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
 import torchvision as tv
@@ -68,7 +68,11 @@ class Top_Down_Baseline(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
 
-        att = self.v_att(img, q_emb)
+        role_oh_encoding = self.encoder.get_verb2role_encoing_batch(gt_verb)
+        if torch.cuda.is_available():
+            role_oh_encoding = role_oh_encoding.to(torch.device('cuda'))
+
+        att = self.v_att(img, q_emb, role_oh_encoding)
         v_emb = (att * img).sum(1)
 
         '''print(' analysis ')
@@ -78,8 +82,6 @@ class Top_Down_Baseline(nn.Module):
 
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
-
-        out = torch.mul(q_repr, v_repr)
 
         mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
@@ -124,7 +126,7 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
+    v_att = Context_Erased_Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     classifier = SimpleClassifier(
@@ -133,6 +135,6 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     Dropout_C = nn.Dropout(0.1)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                                                           v_net, classifier, encoder, Dropout_C)
+                             v_net, classifier, encoder, Dropout_C)
 
 
