@@ -66,6 +66,8 @@ class imsitu_loader_negative_sampling(data.Dataset):
 
         verb, labels = self.encoder.encode(ann)
 
+        print(_id, ann)
+
         return _id, img, verb, labels, torch.stack(sample_list,0)
 
     def __len__(self):
