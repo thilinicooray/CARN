@@ -67,7 +67,8 @@ class Context_Erased_Attention(nn.Module):
             neighbour_att = torch.sum(torch.index_select(w_ctx, 1, current_indices),1)
             neighbour_removed_att = sum_att - neighbour_att
 
-            updated_cur_role_att = nn.functional.softmax(neighbour_removed_att + w[:,rolei],1)
+            #updated_cur_role_att = nn.functional.softmax(neighbour_removed_att + w[:,rolei],1)
+            updated_cur_role_att = nn.functional.softmax(neighbour_removed_att ,1)
 
             if rolei == 0:
                 updated_att = updated_cur_role_att.unsqueeze(1)
