@@ -17,6 +17,9 @@ class Attention(nn.Module):
         q: [batch, qdim]
         """
         logits = self.logits(v, q)
+        att1 = logits.contiguous().view(64,6, 7,7)
+
+        print('logits: ', att1[0])
         w = nn.functional.softmax(logits, 1)
         return w
 
