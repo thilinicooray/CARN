@@ -51,7 +51,7 @@ class Context_Erased_Attention(nn.Module):
         #print('logits: ', att1[0])
         w = logits
 
-        w = w.contiguous().view(mask.size(0), -1, w.size(-1))
+        w = w.contiguous().view(mask.size(0), mask.size(1), -1)
         print('sizes ', w.size(), mask.size())
         w_ctx = w * mask.unsqueeze(-1)
 
