@@ -207,7 +207,10 @@ def main():
 
         utils.set_trainable(model, False)
         utils.set_trainable(model.classifier, True)
-        optimizer = torch.optim.Adamax(model.classifier.parameters(), lr=5e-5)
+        utils.set_trainable(model.v_net, True)
+        optimizer = torch.optim.Adamax([{'params': model.v_net.parameters()},
+                                        {'params': model.classifier.parameters()}
+                                        ], lr=5e-5)
         model_name = 'finetune_cls'
 
     else:
