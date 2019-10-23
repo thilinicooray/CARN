@@ -46,14 +46,10 @@ class Context_Erased_Attention(nn.Module):
         q: [batch, qdim]
         """
         logits = self.logits(v, q)
-        print('logits: ', logits.size())
         w = logits
 
         w = w.contiguous().view(mask.size(0), mask.size(1), -1)
-        print('sizes ', w.size(), mask.size())
         w_ctx = w * mask.unsqueeze(-1)
-
-        print(w.size(), w_ctx[0])
 
         required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
 
@@ -80,9 +76,8 @@ class Context_Erased_Attention(nn.Module):
                 updated_att = torch.cat((updated_att.clone(), updated_cur_role_att.unsqueeze(1)), 1)
 
 
-        print('new att ', updated_att[0])
-
-        final = updated_att.contiguous().view(-1, updated_att.size(-1))
+        final = updated_att.contiguous().view(-1, updated_att.size(-1), 1)
+        print(final.size())
 
         return final
 
