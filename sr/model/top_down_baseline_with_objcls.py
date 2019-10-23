@@ -24,7 +24,7 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, classifier, encoder, Dropout_C, obj_cls):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, classifier, encoder, Dropout_C, obj_cls, secondary_ans):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -37,6 +37,7 @@ class Top_Down_Baseline(nn.Module):
         self.encoder = encoder
         self.Dropout_C = Dropout_C
         self.obj_cls = obj_cls
+        self.secondary_ans = secondary_ans
 
     def forward(self, v_org, gt_verb):
 
@@ -96,10 +97,13 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        logits_vqa = self.classifier(out)
-        logits_obj = self.obj_cls(ctx_erased_v_emb)
+        sec_ans = self.secondary_ans(torch.cat([ctx_erased_v_emb, q_emb],-1))
 
-        logits = logits_vqa + logits_obj
+        logits_vqa = self.classifier(out + sec_ans)
+        #logits_obj = self.obj_cls(ctx_erased_v_emb)
+
+        #logits = logits_vqa + logits_obj
+        logits = logits_vqa
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -145,9 +149,11 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder):
         nn.Linear(hidden_size*2, num_ans_classes)
     )
 
+    secondary_ans = nn.Linear(img_embedding_size+hidden_size, hidden_size)
+
     Dropout_C = nn.Dropout(0.1)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, classifier, encoder, Dropout_C, obj_cls)
+                             v_net, classifier, encoder, Dropout_C, obj_cls, secondary_ans)
 
 
