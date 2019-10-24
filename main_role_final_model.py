@@ -212,7 +212,8 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
-            {'params': model.classifier.parameters()}
+            {'params': model.classifier.parameters()},
+            {'params': model.obj_cls.parameters()}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)

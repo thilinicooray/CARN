@@ -10,7 +10,7 @@ import math
 from torch.nn.utils.weight_norm import weight_norm
 import copy
 
-from ..lib.attention import Attention
+from ..lib.attention import Context_Erased_Attention
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
 import torchvision as tv
@@ -40,7 +40,8 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net,
+                 neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -54,8 +55,13 @@ class Top_Down_Baseline(nn.Module):
         self.Dropout_C = Dropout_C
         self.classifier = classifier
         self.encoder = encoder
+        self.obj_cls = obj_cls
 
     def forward(self, v_org, gt_verb):
+
+        role_oh_encoding = self.encoder.get_verb2role_encoing_batch(gt_verb)
+        if torch.cuda.is_available():
+            role_oh_encoding = role_oh_encoding.to(torch.device('cuda'))
 
         q_list = []
         ans_list = []
@@ -96,8 +102,9 @@ class Top_Down_Baseline(nn.Module):
         if torch.cuda.is_available():
             mask = mask.to(torch.device('cuda'))
 
-        att = self.v_att(img, q_emb)
+        att, context_erased_att = self.v_att(img, q_emb, role_oh_encoding)
         v_emb = (att * img).sum(1)
+        ctx_erased_v_emb = (context_erased_att * img).sum(1)
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
@@ -116,6 +123,8 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
+        logits_obj = self.obj_cls(ctx_erased_v_emb)
+
         for i in range(1):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
@@ -126,7 +135,7 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            att = self.v_att(img, updated_q_emb)
+            att, _ = self.v_att(img, updated_q_emb, role_oh_encoding)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(updated_q_emb)
@@ -149,7 +158,8 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
-        logits = self.classifier(out)
+        logits_vqa = self.classifier(out)
+        logits = logits_vqa + logits_obj
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -220,7 +230,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
+    v_att = Context_Erased_Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
@@ -229,7 +239,15 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
+    obj_cls = nn.Sequential(
+        nn.Linear(img_embedding_size, hidden_size),
+        nn.BatchNorm1d(hidden_size*2),
+        nn.ReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(hidden_size, num_ans_classes)
+    )
+
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls)
 
 
