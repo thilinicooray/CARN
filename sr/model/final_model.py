@@ -104,7 +104,7 @@ class Top_Down_Baseline(nn.Module):
 
         att, context_erased_att = self.v_att(img, q_emb, role_oh_encoding)
         v_emb = (att * img).sum(1)
-        ctx_erased_v_emb = (context_erased_att * img).sum(1)
+        #ctx_erased_v_emb = (context_erased_att * img).sum(1)
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
@@ -123,7 +123,7 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
-        logits_obj = self.obj_cls(ctx_erased_v_emb)
+        logits_obj = self.obj_cls(v_emb)
 
         for i in range(1):
 
