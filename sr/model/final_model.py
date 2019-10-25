@@ -94,7 +94,7 @@ class Top_Down_Baseline(nn.Module):
 
         verb_embed_expand = verb_embd.expand(self.encoder.max_role_count, verb_embd.size(0), verb_embd.size(1))
         verb_embed_expand = verb_embed_expand.transpose(0,1)
-        concat_query = torch.cat([ verb_embed_expand, role_embd], -1)
+        concat_query = torch.cat([ role_embd, verb_embed_expand], -1)
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
 
@@ -106,7 +106,7 @@ class Top_Down_Baseline(nn.Module):
 
         att, context_erased_att = self.v_att(img, q_emb, role_oh_encoding)
         v_emb = (att * img).sum(1)
-        #ctx_erased_v_emb = (context_erased_att * img).sum(1)
+        ctx_erased_v_emb = (context_erased_att * img).sum(1)
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
@@ -125,7 +125,7 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
-        logits_obj = self.obj_cls(v_emb)
+        logits_obj = self.obj_cls(ctx_erased_v_emb)
 
         for i in range(1):
 
