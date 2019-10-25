@@ -73,6 +73,8 @@ class Top_Down_Baseline(nn.Module):
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
 
+        v = F.normalize(v)
+
         batch_size = v.size(0)
 
         role_idx = self.encoder.get_role_ids_batch(gt_verb)
