@@ -56,7 +56,7 @@ def attention(query, key, value, mask=None, dropout=None):
 
 class Top_Down_Baseline(nn.Module):
     def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net,
-                 neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls):
+                 neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, se_img):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -71,6 +71,7 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
         self.obj_cls = obj_cls
+        self.se_img = se_img
 
     def forward(self, v_org, gt_verb):
 
@@ -174,7 +175,7 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
-        logits_obj = self.obj_cls(ctx_erased_v_emb + ctx_erased_v_emb1)
+        logits_obj = self.obj_cls(self.se_img(ctx_erased_v_emb + ctx_erased_v_emb1))
         logits_vqa = self.classifier(out)
         logits = logits_vqa + logits_obj
 
@@ -223,7 +224,7 @@ class MultiHeadedAttention(nn.Module):
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
-            [F.tanh(l(x)).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+            [F.relu(l(x)).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
              for l, x in zip(self.linears, (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
@@ -234,7 +235,7 @@ class MultiHeadedAttention(nn.Module):
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
 
-        return F.tanh(self.linears[-1](x)), torch.mean(self.attn, 1)
+        return F.relu(self.linears[-1](x)), torch.mean(self.attn, 1)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder):
 
@@ -264,7 +265,9 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
         nn.Linear(hidden_size, num_ans_classes)
     )
 
+    se_img = SELayer(img_embedding_size)
+
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, se_img)
 
 
