@@ -90,7 +90,7 @@ class Top_Down_Baseline(nn.Module):
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
 
-        v = F.normalize(v, dim=-1)
+        #v = F.normalize(v, dim=-1)
 
         batch_size = v.size(0)
 
@@ -152,8 +152,7 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            att, erz_att = self.v_att(img, updated_q_emb, role_oh_encoding)
-            ctx_erased_v_emb1 = (erz_att * img).sum(1)
+            att, _ = self.v_att(img, updated_q_emb, role_oh_encoding)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(updated_q_emb)
@@ -177,7 +176,7 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
-        logits_obj = self.obj_cls(self.se_img(ctx_erased_v_emb) + self.se_img(ctx_erased_v_emb1))
+        logits_obj = self.obj_cls(ctx_erased_v_emb )
         logits_vqa = self.classifier(out)
         logits = logits_vqa + logits_obj
 
