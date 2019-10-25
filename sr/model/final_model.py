@@ -56,7 +56,7 @@ def attention(query, key, value, mask=None, dropout=None):
 
 class Top_Down_Baseline(nn.Module):
     def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net,
-                 neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, se_img):
+                 neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, se_img, se_ans):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
@@ -72,6 +72,7 @@ class Top_Down_Baseline(nn.Module):
         self.encoder = encoder
         self.obj_cls = obj_cls
         self.se_img = se_img
+        self.se_ans = se_ans
 
     def forward(self, v_org, gt_verb):
 
@@ -136,7 +137,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2
+        out = self.se_ans(mfb_l2)
 
         q_list.append(q_repr)
         ans_list.append(out)
@@ -169,8 +170,9 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out
+            '''gate = torch.sigmoid(q_list[-1] * q_repr)
+            out = gate * ans_list[-1] + (1-gate) * out'''
+            out = ans_list[-1] + self.se_ans(out)
 
             q_list.append(q_repr)
             ans_list.append(out)
@@ -266,8 +268,9 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     )
 
     se_img = SELayer(img_embedding_size)
+    se_ans = SELayer(hidden_size, reduction=8)
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, se_img)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, se_img, se_ans)
 
 

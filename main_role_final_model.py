@@ -214,7 +214,8 @@ def main():
             {'params': model.neighbour_attention.parameters()},
             {'params': model.classifier.parameters()},
             {'params': model.obj_cls.parameters()},
-            {'params': model.se_img.parameters()}
+            {'params': model.se_img.parameters()},
+            {'params': model.se_ans.parameters()}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
