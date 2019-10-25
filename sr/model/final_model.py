@@ -223,7 +223,7 @@ class MultiHeadedAttention(nn.Module):
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
-            [F.relu(l(x)).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+            [F.tanh(l(x)).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
              for l, x in zip(self.linears, (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
@@ -234,7 +234,7 @@ class MultiHeadedAttention(nn.Module):
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
 
-        return F.relu(self.linears[-1](x)), torch.mean(self.attn, 1)
+        return F.tanh(self.linears[-1](x)), torch.mean(self.attn, 1)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder):
 
