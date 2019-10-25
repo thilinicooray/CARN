@@ -17,9 +17,8 @@ import torchvision as tv
 from ..utils import cross_entropy_loss
 
 class SELayer(nn.Module):
-    def __init__(self, channel, reduction=16):
+    def __init__(self, channel, reduction=4):
         super(SELayer, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
             nn.Linear(channel, channel // reduction, bias=False),
             nn.ReLU(inplace=True),
@@ -28,9 +27,8 @@ class SELayer(nn.Module):
         )
 
     def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
+        b, c = x.size()
+        y = self.fc(x).view(b, c)
         return x * y.expand_as(x)
 
 class vgg16_modified(nn.Module):
@@ -142,8 +140,6 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
-        logits_obj = self.obj_cls(ctx_erased_v_emb)
-
         for i in range(1):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
@@ -154,7 +150,8 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            att, _ = self.v_att(img, updated_q_emb, role_oh_encoding)
+            att, erz_att = self.v_att(img, updated_q_emb, role_oh_encoding)
+            ctx_erased_v_emb1 = (erz_att * img).sum(1)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(updated_q_emb)
@@ -177,6 +174,7 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
+        logits_obj = self.obj_cls(ctx_erased_v_emb + ctx_erased_v_emb1)
         logits_vqa = self.classifier(out)
         logits = logits_vqa + logits_obj
 
