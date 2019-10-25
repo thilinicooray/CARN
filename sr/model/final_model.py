@@ -175,7 +175,7 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
-        logits_obj = self.obj_cls(self.se_img(ctx_erased_v_emb + ctx_erased_v_emb1))
+        logits_obj = self.obj_cls(self.se_img(ctx_erased_v_emb) + self.se_img(ctx_erased_v_emb1))
         logits_vqa = self.classifier(out)
         logits = logits_vqa + logits_obj
 
