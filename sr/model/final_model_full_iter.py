@@ -156,7 +156,7 @@ class Top_Down_Baseline(nn.Module):
             out = gate * ans_list[-1] + (1-gate) * out
             out = self.se_ans(out)'''
 
-            out = self.ans_combiner(torch.cat(ans_list[-1],out))
+            out = self.ans_combiner(torch.cat([ans_list[-1],out], -1))
 
             q_list.append(q_repr)
             ans_list.append(out)
