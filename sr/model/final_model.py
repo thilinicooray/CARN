@@ -137,7 +137,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = self.se_ans(mfb_l2)
+        out = mfb_l2
 
         q_list.append(q_repr)
         ans_list.append(out)
@@ -169,9 +169,9 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            '''gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out'''
-            out = ans_list[-1] + self.se_ans(out)
+            gate = torch.sigmoid(q_list[-1] * q_repr)
+            out = gate * ans_list[-1] + (1-gate) * out
+            out = self.se_ans(out)
 
             q_list.append(q_repr)
             ans_list.append(out)
@@ -225,7 +225,7 @@ class MultiHeadedAttention(nn.Module):
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
-            [F.relu(l(x)).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+            [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
              for l, x in zip(self.linears, (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
@@ -236,7 +236,7 @@ class MultiHeadedAttention(nn.Module):
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
 
-        return F.relu(self.linears[-1](x)), torch.mean(self.attn, 1)
+        return self.linears[-1](x), torch.mean(self.attn, 1)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder):
 
