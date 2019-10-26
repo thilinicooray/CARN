@@ -29,7 +29,6 @@ class imsitu_encoder():
         self.train_transform = tv.transforms.Compose([
             tv.transforms.RandomRotation(10),
             tv.transforms.RandomResizedCrop(224),
-            tv.transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
             tv.transforms.RandomHorizontalFlip(),
             tv.transforms.ToTensor(),
             self.normalize,
