@@ -213,7 +213,7 @@ def main():
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
             {'params': model.classifier.parameters()},
-            {'params': model.out_init.parameters()},
+            {'params': model.out_init},
             {'params': model.ans_combiner.parameters()},
         ], lr=1e-3)
 
