@@ -139,7 +139,7 @@ class Context_Erased_Attention_Advanced(nn.Module):
             if torch.cuda.is_available():
                 current_indices = current_indices.to(torch.device('cuda'))
 
-            neighbour_removed_att = nn.functional.softmax(self.combo_ctx_gate(torch.sum(torch.index_select(w_ctx, 1, current_indices),1).unsqueeze(-1)),1)
+            neighbour_removed_att = self.combo_ctx_gate(torch.sum(torch.index_select(w_ctx, 1, current_indices),1).unsqueeze(-1))
 
             updated_cur_role_att = self.final_att_proj(neighbour_removed_att + w[:,rolei].unsqueeze(-1))
 

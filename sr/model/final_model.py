@@ -171,7 +171,7 @@ class Top_Down_Baseline(nn.Module):
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out
-            out = self.se_ans(out)
+            #out = self.se_ans(out)
 
             q_list.append(q_repr)
             ans_list.append(out)
