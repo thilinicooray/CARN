@@ -10,7 +10,7 @@ import math
 from torch.nn.utils.weight_norm import weight_norm
 import copy
 
-from ..lib.attention import Context_Erased_Attention
+from ..lib.attention import Context_Erased_Attention_Advanced
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
 import torchvision as tv
@@ -249,7 +249,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
-    v_att = Context_Erased_Attention(img_embedding_size, hidden_size, hidden_size)
+    v_att = Context_Erased_Attention_Advanced(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
