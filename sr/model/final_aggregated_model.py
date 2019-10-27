@@ -10,7 +10,7 @@ import math
 from torch.nn.utils.weight_norm import weight_norm
 import copy
 
-from ..lib.attention import Context_Erased_Attention_Advanced
+from ..lib.attention import Attention, Context_Erased_Attention_Advanced
 from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
 import torchvision as tv
@@ -55,23 +55,30 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, query_composer, v_att, q_net, v_net,
-                 neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, v_net_obj):
+    def __init__(self, covnet, role_emb, verb_emb, query_composer, v_att, q_net,
+                 v_net, neighbour_attention, updated_query_composer, v_att_q, q_net_q,
+                 v_net_q, joint_modality, v_net_obj, classifier, Dropout_C, encoder):
         super(Top_Down_Baseline, self).__init__()
-        self.convnet = convnet
+        self.convnet = covnet
         self.role_emb = role_emb
         self.verb_emb = verb_emb
         self.query_composer = query_composer
         self.v_att = v_att
         self.q_net = q_net
         self.v_net = v_net
+
         self.updated_query_composer = updated_query_composer
         self.neighbour_attention = neighbour_attention
+        self.v_att_q = v_att_q
+        self.q_net_q = q_net_q
+        self.v_net_q = v_net_q
+        self.joint_modality = joint_modality
+
+        self.v_net_obj = v_net_obj
+
         self.Dropout_C = Dropout_C
         self.classifier = classifier
         self.encoder = encoder
-        self.obj_cls = obj_cls
-        self.v_net_obj = v_net_obj
 
     def forward(self, v_org, gt_verb):
 
@@ -123,6 +130,7 @@ class Top_Down_Baseline(nn.Module):
         att, context_erased_att = self.v_att(img, q_emb, role_oh_encoding)
         v_emb = (att * img).sum(1)
         ctx_erased_v_emb = self.v_net_obj((context_erased_att * img).sum(1))
+
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
@@ -151,10 +159,10 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            att, _ = self.v_att(img, updated_q_emb, role_oh_encoding)
+            att= self.v_att_q(img, updated_q_emb)
             v_emb = (att * img).sum(1)
-            v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(updated_q_emb)
+            v_repr = self.v_net_q(v_emb)
+            q_repr = self.q_net_q(updated_q_emb)
 
             #out = q_repr * v_repr
             mfb_iq_eltwise = torch.mul(q_repr, v_repr)
@@ -166,7 +174,7 @@ class Top_Down_Baseline(nn.Module):
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2
+            out = self.joint_modality(mfb_l2)
 
             '''gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out'''
@@ -175,9 +183,7 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
-        logits_obj = self.obj_cls(ctx_erased_v_emb )
-        logits_vqa = self.classifier(out)
-        logits = logits_vqa + logits_obj
+        logits = self.classifier(ctx_erased_v_emb + out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -246,28 +252,39 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     covnet = vgg16_modified()
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
+
+    # TD original
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
-    updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
     v_att = Context_Erased_Attention_Advanced(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
+
+
+    #qupdate model
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
+    updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
+    v_att_q = Attention(img_embedding_size, hidden_size, hidden_size)
+    q_net_q = FCNet([hidden_size, hidden_size ])
+    v_net_q = FCNet([img_embedding_size, hidden_size])
+    joint_modality = weight_norm(nn.Linear(hidden_size, hidden_size*2), dim=None)
+
+
+    #i_update model
+    v_net_obj = FCNet([img_embedding_size, hidden_size*2])
+
+
     Dropout_C = nn.Dropout(0.1)
 
-    classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
-
-    v_net_obj = FCNet([img_embedding_size, hidden_size])
-
-    obj_cls = nn.Sequential(
-        nn.Linear(hidden_size, hidden_size*2),
-        nn.BatchNorm1d(hidden_size*2),
+    classifier = nn.Sequential(
         nn.ReLU(),
         nn.Dropout(0.5),
-        nn.Linear(hidden_size*2, num_ans_classes)
+        weight_norm(nn.Linear(hidden_size*2, num_ans_classes), dim=None)
     )
 
+
+
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, obj_cls, v_net_obj)
+                             v_net, neighbour_attention, updated_query_composer, v_att_q, q_net_q,
+                             v_net_q, joint_modality, v_net_obj, classifier, Dropout_C, encoder)
 
 
