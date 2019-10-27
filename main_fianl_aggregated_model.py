@@ -219,7 +219,7 @@ def main():
             {'params': model.v_net_obj.parameters()},
             {'params': model.obj_classifier.parameters()},
             {'params': model.classifier.parameters()},
-        ], lr=1e-3)
+        ], lr=1e-3, weight_decay=1e-4)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
