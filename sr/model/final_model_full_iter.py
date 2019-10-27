@@ -125,7 +125,7 @@ class Top_Down_Baseline(nn.Module):
         out = self.out_init.expand(batch_size, self.out_init.size(0), self.out_init.size(1)).contiguous().view(-1, self.out_init.size(1))
         ans_list.append(out)
 
-        for i in range(2):
+        for i in range(3):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
