@@ -140,15 +140,18 @@ class Context_Erased_Attention_Advanced(nn.Module):
                 current_indices = current_indices.to(torch.device('cuda'))
 
             neighbour_removed_att = self.combo_ctx_gate(torch.sum(torch.index_select(w_ctx, 1, current_indices),1).unsqueeze(-1))
-            print('neighbour_removed_att ',neighbour_removed_att.size())
 
             updated_cur_role_att = self.final_att_proj(neighbour_removed_att + w[:,rolei].unsqueeze(-1))
+
+            print('updated_cur_role_att ', updated_cur_role_att.size())
 
             if rolei == 0:
                 updated_att = updated_cur_role_att.unsqueeze(1)
             else:
                 updated_att = torch.cat((updated_att.clone(), updated_cur_role_att.unsqueeze(1)), 1)
 
+
+        print('updated_att ', updated_att.size())
 
         context_erased_att = updated_att.contiguous().view(-1, updated_att.size(-1), 1)
 
