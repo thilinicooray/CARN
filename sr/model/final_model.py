@@ -258,12 +258,14 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
+    v_net_obj = FCNet([img_embedding_size, hidden_size])
+
     obj_cls = nn.Sequential(
-        nn.Linear(img_embedding_size, hidden_size),
-        nn.BatchNorm1d(hidden_size),
+        nn.Linear(img_embedding_size, hidden_size*2),
+        nn.BatchNorm1d(hidden_size*2),
         nn.ReLU(),
         nn.Dropout(0.5),
-        nn.Linear(hidden_size, num_ans_classes)
+        nn.Linear(hidden_size*2, num_ans_classes)
     )
 
     se_img = SELayer(img_embedding_size)
