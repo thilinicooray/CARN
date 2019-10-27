@@ -266,16 +266,17 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     v_att_q = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net_q = FCNet([hidden_size, hidden_size ])
     v_net_q = FCNet([img_embedding_size, hidden_size])
-    joint_modality = weight_norm(nn.Linear(hidden_size, hidden_size*2), dim=None)
+    joint_modality = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
 
 
     #i_update model
-    v_net_obj = FCNet([img_embedding_size, hidden_size*2])
+    v_net_obj = FCNet([img_embedding_size, hidden_size])
 
 
     Dropout_C = nn.Dropout(0.1)
 
     classifier = nn.Sequential(
+        weight_norm(nn.Linear(hidden_size, hidden_size*2), dim=None),
         nn.ReLU(),
         nn.Dropout(0.5),
         weight_norm(nn.Linear(hidden_size*2, num_ans_classes), dim=None)
