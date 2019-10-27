@@ -217,6 +217,7 @@ def main():
             {'params': model.v_net_q.parameters()},
             {'params': model.joint_modality.parameters()},
             {'params': model.v_net_obj.parameters()},
+            {'params': model.obj_classifier.parameters()},
             {'params': model.classifier.parameters()},
         ], lr=1e-3)
 

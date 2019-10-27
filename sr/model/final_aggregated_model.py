@@ -57,7 +57,7 @@ def attention(query, key, value, mask=None, dropout=None):
 class Top_Down_Baseline(nn.Module):
     def __init__(self, covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                  v_net, neighbour_attention, updated_query_composer, v_att_q, q_net_q,
-                 v_net_q, joint_modality, v_net_obj, classifier, Dropout_C, encoder):
+                 v_net_q, joint_modality, v_net_obj, obj_classifier, classifier, Dropout_C, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
         self.role_emb = role_emb
@@ -75,6 +75,7 @@ class Top_Down_Baseline(nn.Module):
         self.joint_modality = joint_modality
 
         self.v_net_obj = v_net_obj
+        self.obj_classifier = obj_classifier
 
         self.Dropout_C = Dropout_C
         self.classifier = classifier
@@ -174,7 +175,7 @@ class Top_Down_Baseline(nn.Module):
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = self.joint_modality(mfb_l2)
+            out = mfb_l2
 
             '''gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out'''
@@ -183,7 +184,7 @@ class Top_Down_Baseline(nn.Module):
             q_list.append(q_repr)
             ans_list.append(out)
 
-        logits = self.classifier(ctx_erased_v_emb + out)
+        logits = self.classifier(out) + self.obj_classifier(ctx_erased_v_emb)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -275,6 +276,14 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
 
     Dropout_C = nn.Dropout(0.1)
 
+    obj_classifier = nn.Sequential(
+        nn.Linear(hidden_size, hidden_size*2),
+        nn.BatchNorm1d(hidden_size*2),
+        nn.ReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(hidden_size*2, num_ans_classes)
+    )
+
     classifier = nn.Sequential(
         weight_norm(nn.Linear(hidden_size, hidden_size*2), dim=None),
         nn.ReLU(),
@@ -286,6 +295,6 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, v_att_q, q_net_q,
-                             v_net_q, joint_modality, v_net_obj, classifier, Dropout_C, encoder)
+                             v_net_q, joint_modality, v_net_obj, obj_classifier, classifier, Dropout_C, encoder)
 
 
