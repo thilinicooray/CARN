@@ -83,7 +83,6 @@ class imsitu_scorer():
     def add_point_noun_single_role(self, labels_predict, gt_labels):
 
         batch_size = gt_labels.size()[0]
-        print('batch size score:', batch_size)
         for i in range(batch_size):
             label_pred = labels_predict[i]
             gt_label = gt_labels[i]

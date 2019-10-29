@@ -259,18 +259,14 @@ class imsitu_encoder():
                     has_agent = True
                     break
 
-
         for frame in frames:
-
             if has_agent:
                 agent = frame[agent_role]
                 if agent in self.agent_label_list:
                     label_id = self.agent_label_list.index(agent)
                 else:
                     label_id = self.agent_label_list.index('UNK')
-
                 agent_id_list.append(label_id)
-
             else:
                 agent_id_list.append(len(self.agent_label_list))
 
