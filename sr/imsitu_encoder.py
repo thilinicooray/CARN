@@ -86,6 +86,8 @@ class imsitu_encoder():
 
         print('train set stats: \n\t verb count:', len(self.verb_list), '\n\t role count:',len(self.role_list),
               '\n\t label count:', len(self.label_list) ,
+              '\n\t agent label count:', len(self.agent_label_list) ,
+              '\n\t place label count:', len(self.place_label_list) ,
               '\n\t max role count:', self.max_role_count)
 
 
