@@ -20,7 +20,7 @@ class vgg16_modified(nn.Module):
 
         new_classifier = nn.Sequential(
             nn.Linear(num_features, num_features//4),
-            nn.BatchNorm1d(num_features//4),
+            #nn.BatchNorm1d(num_features//4),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(num_features//4, num_classes)
