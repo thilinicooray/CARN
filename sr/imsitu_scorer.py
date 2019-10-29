@@ -79,6 +79,47 @@ class imsitu_scorer():
 
             self.score_cards.append(new_card)
 
+
+    def add_point_noun_single_role(self, labels_predict, gt_labels):
+
+        batch_size = gt_labels.size()[0]
+        print('batch size score:', batch_size)
+        for i in range(batch_size):
+            label_pred = labels_predict[i]
+            gt_label = gt_labels[i]
+
+            new_card = {"verb":0.0, "value":0.0, "value*":0.0, "n_value":0.0, "value-all":0.0, "value-all*":0.0}
+
+            score_card = new_card
+
+            verb_found = False
+
+            score_card["n_value"] += 1
+
+            all_found = True
+
+            label_id = torch.max(label_pred,0)[1]
+            found = False
+            for r in range(0,self.nref):
+                gt_label_id = gt_label[r]
+                if label_id == gt_label_id:
+                    found = True
+                    break
+            if not found: all_found = False
+            #both verb and at least one val found
+            if found and verb_found: score_card["value"] += 1
+            #at least one val found
+            if found: score_card["value*"] += 1
+
+            score_card["value*"] /= 1
+            score_card["value"] /= 1
+            if all_found and verb_found: score_card["value-all"] += 1
+            #all values found
+            if all_found: score_card["value-all*"] += 1
+
+            self.score_cards.append(new_card)
+
+
     def add_point_noun_log(self, img_id, gt_verbs, labels_predict, gt_labels):
 
         batch_size = gt_verbs.size()[0]

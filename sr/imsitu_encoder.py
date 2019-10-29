@@ -14,6 +14,8 @@ class imsitu_encoder():
         self.max_label_count = 3
         self.verb2_role_dict = {}
         self.label_list = []
+        self.agent_label_list = []
+        self.place_label_list = []
         self.max_role_count = 0
         self.question_words = {}
         self.vrole_question = {}
@@ -49,6 +51,22 @@ class imsitu_encoder():
                 self.verb_list.append(current_verb)
                 self.verb2_role_dict[current_verb] = []
 
+            roles = img['frames'][0].keys()
+            has_agent = False
+            has_place = False
+            agent_role = None
+            if 'place' in roles:
+                has_place = True
+            if 'agent' in roles:
+                agent_role = 'agent'
+                has_agent = True
+            else:
+                for role1 in roles:
+                    if role1 in self.agent_roles[1:]:
+                        agent_role = role1
+                        has_agent = True
+                        break
+
             for frame in img['frames']:
                 for role,label in frame.items():
                     if role not in self.role_list:
@@ -59,6 +77,12 @@ class imsitu_encoder():
                         self.max_role_count = len(self.verb2_role_dict[current_verb])
                     if label not in self.label_list:
                         self.label_list.append(label)
+                    if label not in self.agent_label_list:
+                        if has_agent and role == agent_role:
+                            self.agent_label_list.append(label)
+                    if label not in self.place_label_list:
+                        if has_place and role == 'place':
+                            self.place_label_list.append(label)
 
         print('train set stats: \n\t verb count:', len(self.verb_list), '\n\t role count:',len(self.role_list),
               '\n\t label count:', len(self.label_list) ,
@@ -166,6 +190,16 @@ class imsitu_encoder():
 
         return verb, labels
 
+    def encode_agent(self, item):
+        labels = self.get_agent_label_ids(item['verb'], item['frames'])
+
+        return labels
+
+    def encode_place(self, item):
+        labels = self.get_place_label_ids(item['verb'], item['frames'])
+
+        return labels
+
     def get_role_ids(self, verb_id):
 
         return self.verb2role_list[verb_id]
@@ -205,6 +239,64 @@ class imsitu_encoder():
             all_frame_id_list.append(torch.tensor(label_id_list))
 
         labels = torch.stack(all_frame_id_list,0)
+
+        return labels
+
+    def get_agent_label_ids(self, verb, frames):
+        agent_id_list = []
+        roles = self.verb2_role_dict[verb]
+
+        if 'agent' in roles:
+            agent_role = 'agent'
+            has_agent = True
+        else:
+            for role1 in roles:
+                if role1 in self.agent_roles[1:]:
+                    agent_role = role1
+                    has_agent = True
+                    break
+
+
+        for frame in frames:
+
+            if has_agent:
+                agent = frame[agent_role]
+                if agent in self.agent_label_list:
+                    label_id = self.agent_label_list.index(agent)
+                else:
+                    label_id = self.agent_label_list.index('UNK')
+
+                agent_id_list.append(label_id)
+
+            else:
+                agent_id_list.append(len(self.agent_label_list))
+
+        labels = torch.tensor(agent_id_list)
+
+        return labels
+
+    def get_place_label_ids(self, verb, frames):
+        place_id_list = []
+        roles = self.verb2_role_dict[verb]
+
+        if 'place' in roles:
+            has_place = True
+
+        for frame in frames:
+
+            if has_place:
+                place = frame['place']
+                if place in self.place_label_list:
+                    label_id = self.place_label_list.index(place)
+                else:
+                    label_id = self.place_label_list.index('UNK')
+
+                place_id_list.append(label_id)
+
+            else:
+                place_id_list.append(len(self.place_label_list))
+
+        labels = torch.tensor(place_id_list)
 
         return labels
 
