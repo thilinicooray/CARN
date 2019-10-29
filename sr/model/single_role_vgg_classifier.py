@@ -29,8 +29,6 @@ class vgg16_modified(nn.Module):
         features.extend(new_classifier)
         self.classifier = nn.Sequential(*features)
 
-        print(self.classifier)
-
     def forward(self,x):
         features = self.vgg_features(x)
         out = self.classifier(features.view(-1, 512*7*7))
