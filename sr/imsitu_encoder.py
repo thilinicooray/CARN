@@ -248,6 +248,7 @@ class imsitu_encoder():
         agent_id_list = []
         roles = self.verb2_role_dict[verb]
 
+        has_agent = False
         if 'agent' in roles:
             agent_role = 'agent'
             has_agent = True
@@ -280,6 +281,8 @@ class imsitu_encoder():
     def get_place_label_ids(self, verb, frames):
         place_id_list = []
         roles = self.verb2_role_dict[verb]
+
+        has_place = False
 
         if 'place' in roles:
             has_place = True
