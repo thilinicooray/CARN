@@ -15,19 +15,19 @@ class vgg16_modified(nn.Module):
         self.vgg_features = vgg.features
         self.num_ans_classes = num_classes
 
-        #num_features = vgg.classifier[3].in_features
-        #features = list(vgg.classifier.children())[:-4]
+        num_features = vgg.classifier[3].in_features
+        features = list(vgg.classifier.children())[:-4]
 
-        self.classifier = nn.Sequential(
-            nn.Linear(512*7*7, 1024),
+        new_classifier = nn.Sequential(
+            nn.Linear(num_features, num_features//4),
             #nn.BatchNorm1d(num_features//4),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(1024, num_classes)
+            nn.Linear(num_features//4, num_classes)
         )
 
-        #features.extend(new_classifier)
-        #self.classifier = nn.Sequential(*features)
+        features.extend(new_classifier)
+        self.classifier = nn.Sequential(*features)
 
     def forward(self,x):
         features = self.vgg_features(x)
