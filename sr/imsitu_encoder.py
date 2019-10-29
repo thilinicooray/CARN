@@ -202,6 +202,11 @@ class imsitu_encoder():
 
         return labels
 
+    def encode_verb(self, item):
+        verb = self.verb_list.index(item['verb'])
+
+        return verb
+
     def get_role_ids(self, verb_id):
 
         return self.verb2role_list[verb_id]

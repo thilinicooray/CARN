@@ -47,6 +47,20 @@ class vgg16_modified(nn.Module):
         final_loss = loss/batch_size
         return final_loss
 
+    def calculate_verb_loss(self, verb_pred, gt_verbs):
+
+        batch_size = verb_pred.size()[0]
+        loss = 0
+        #print('eval pred verbs :', pred_verbs)
+        for i in range(batch_size):
+            verb_loss = 0
+            verb_loss += cross_entropy_loss(verb_pred[i], gt_verbs[i])
+            loss += verb_loss
+
+
+        final_loss = loss/batch_size
+        return final_loss
+
 def build_single_role_classifier(num_ans_classes):
 
     covnet = vgg16_modified(num_ans_classes)

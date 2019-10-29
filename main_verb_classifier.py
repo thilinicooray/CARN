@@ -27,18 +27,18 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
     for epoch in range(max_epoch):
 
-        for i, (_, img, labels) in enumerate(train_loader):
+        for i, (img_id, img, verb) in enumerate(train_loader):
             total_steps += 1
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
-                labels = torch.autograd.Variable(labels.cuda())
+                verb = torch.autograd.Variable(verb.cuda())
             else:
                 img = torch.autograd.Variable(img)
-                labels = torch.autograd.Variable(labels)
+                verb = torch.autograd.Variable(verb)
 
-            role_predict = pmodel(img)
-            loss = model.calculate_loss( role_predict, labels)
+            verb_predict = pmodel(img)
+            loss = model.calculate_verb_loss(verb_predict, verb)
 
             loss.backward()
 
@@ -49,13 +49,13 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
             train_loss += loss.item()
 
-            top1.add_point_noun_single_role(role_predict, labels)
-            top5.add_point_noun_single_role(role_predict, labels)
+            top1.add_point_verb_only_eval(img_id, verb_predict, verb)
+            top5.add_point_verb_only_eval(img_id, verb_predict, verb)
 
 
             if total_steps % print_freq == 0:
-                top1_a = top1.get_average_results_nouns()
-                top5_a = top5.get_average_results_nouns()
+                top1_a = top1.get_average_results()
+                top5_a = top5.get_average_results()
                 print ("{},{},{}, {} , {}, loss = {:.2f}, avg loss = {:.2f}"
                        .format(total_steps-1,epoch,i, utils.format_dict(top1_a, "{:.2f}", "1-"),
                                utils.format_dict(top5_a,"{:.2f}","5-"), loss.item(),
@@ -66,8 +66,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top1, top5, val_loss = eval(model, dev_loader, encoder, gpu_mode)
                 model.train()
 
-                top1_avg = top1.get_average_results_nouns()
-                top5_avg = top5.get_average_results_nouns()
+                top1_avg = top1.get_average_results()
+                top5_avg = top5.get_average_results()
 
                 avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
                             top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
@@ -88,7 +88,7 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
                 top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
-            del role_predict, loss, img, labels
+            del verb_predict, loss, img, verb
         print('Epoch ', epoch, ' completed!')
         scheduler.step()
 
@@ -100,23 +100,23 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
-        for i, (img_id, img, labels) in enumerate(dev_loader):
+        for i, (img_id, img, verb) in enumerate(dev_loader):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
-                labels = torch.autograd.Variable(labels.cuda())
+                labels = torch.autograd.Variable(verb.cuda())
             else:
                 img = torch.autograd.Variable(img)
-                labels = torch.autograd.Variable(labels)
+                labels = torch.autograd.Variable(verb)
 
-            role_predict = model(img)
+            verb_predict = model(img)
 
-            top1.add_point_noun_single_role(role_predict, labels)
-            top5.add_point_noun_single_role(role_predict, labels)
+            top1.add_point_verb_only_eval(img_id, verb_predict, verb)
+            top5.add_point_verb_only_eval(img_id, verb_predict, verb)
 
-            del role_predict, img, labels
+            del verb_predict, img, labels
             #break
 
     return top1, top5, 0
@@ -159,19 +159,19 @@ def main():
 
     encoder = imsitu_encoder.imsitu_encoder(train_set)
 
-    train_set = imsitu_loader.imsitu_loader_place(imgset_folder, train_set, encoder,'train', encoder.train_transform)
+    train_set = imsitu_loader.imsitu_loader_verb(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
     constructor = 'build_%s' % args.model
-    model = getattr(single_role_vgg_classifier, constructor)(len(encoder.place_label_list))
+    model = getattr(single_role_vgg_classifier, constructor)(len(encoder.verb_list))
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     dev_set = json.load(open(dataset_folder + '/' + args.dev_file))
-    dev_set = imsitu_loader.imsitu_loader_place(imgset_folder, dev_set, encoder, 'val', encoder.dev_transform)
+    dev_set = imsitu_loader.imsitu_loader_verb(imgset_folder, dev_set, encoder, 'val', encoder.dev_transform)
     dev_loader = torch.utils.data.DataLoader(dev_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     test_set = json.load(open(dataset_folder + '/' + args.test_file))
-    test_set = imsitu_loader.imsitu_loader_place(imgset_folder, test_set, encoder, 'test', encoder.dev_transform)
+    test_set = imsitu_loader.imsitu_loader_verb(imgset_folder, test_set, encoder, 'test', encoder.dev_transform)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     if not os.path.exists(args.output_dir):
@@ -197,7 +197,7 @@ def main():
         model_name = 'train_full'
         utils.set_trainable(model, True)
         optimizer = torch.optim.Adamax([
-            {'params': model.vgg_features.parameters()},
+            {'params': model.vgg_features.parameters(), 'lr': 5e-5},
             {'params': model.classifier.parameters()},
         ], lr=1e-3)
 
