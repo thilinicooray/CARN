@@ -163,3 +163,6 @@ def main():
     extract_features(model, 'train', train_loader, args.gpuid, len(train_loader)*batch_size)
     extract_features(model, 'val', dev_loader, args.gpuid, len(dev_loader)*batch_size)
     extract_features(model, 'test', test_loader, args.gpuid, len(test_loader)*batch_size)
+
+if __name__ == "__main__":
+    main()
