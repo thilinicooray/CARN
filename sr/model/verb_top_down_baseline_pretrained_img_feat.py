@@ -24,14 +24,13 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, query_composer, v_att, q_net, v_net, classifier, encoder, Dropout_C):
+    def __init__(self, query_composer, v_att, q_net, v_net, classifier, Dropout_C):
         super(Top_Down_Baseline, self).__init__()
         self.query_composer = query_composer
         self.v_att = v_att
         self.q_net = q_net
         self.v_net = v_net
         self.classifier = classifier
-        self.encoder = encoder
         self.Dropout_C = Dropout_C
 
     def forward(self, img_grid_feat, agent_feat, place_feat):
@@ -57,7 +56,7 @@ class Top_Down_Baseline(nn.Module):
 
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
-        mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, 1)   # N x 1 x 1000 x 5
+        mfb_iq_resh = mfb_iq_drop.view(batch_size, 1, -1, 1)   # N x 1 x 1000 x 5
         mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
@@ -81,7 +80,7 @@ class Top_Down_Baseline(nn.Module):
         final_loss = loss/batch_size
         return final_loss
 
-def build_top_down_baseline_verb(num_ans_classes, encoder):
+def build_top_down_baseline_verb(num_ans_classes):
 
     hidden_size = 1024
     img_embedding_size = 512
@@ -96,6 +95,6 @@ def build_top_down_baseline_verb(num_ans_classes, encoder):
     Dropout_C = nn.Dropout(0.1)
 
     return Top_Down_Baseline(query_composer, v_att, q_net,
-                             v_net, classifier, encoder, Dropout_C)
+                             v_net, classifier, Dropout_C)
 
 
