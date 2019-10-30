@@ -119,7 +119,7 @@ class imsitu_loader_verb_pretrained_img_feat(data.Dataset):
         self.agent_img_id2idx = cPickle.load(
             open(os.path.join(dataroot, 'agent_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
         print('loading agent flat img features from h5 file')
-        agent_flat_h5_path = os.path.join(dataroot, 'agent_imsitu_%s_flat.hdf5' % split)
+        agent_flat_h5_path = os.path.join(dataroot, 'agent_imsitu_%s_flat_relu.hdf5' % split)
         with h5py.File(agent_flat_h5_path, 'r') as hf:
             self.agent_features = np.array(hf.get('image_features'))
 
@@ -129,7 +129,7 @@ class imsitu_loader_verb_pretrained_img_feat(data.Dataset):
         self.place_img_id2idx = cPickle.load(
             open(os.path.join(dataroot, 'place_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
         print('loading place flat img features from h5 file')
-        place_flat_h5_path = os.path.join(dataroot, 'place_imsitu_%s_flat.hdf5' % split)
+        place_flat_h5_path = os.path.join(dataroot, 'place_imsitu_%s_flat_relu.hdf5' % split)
         with h5py.File(place_flat_h5_path, 'r') as hf:
             self.place_features = np.array(hf.get('image_features'))
 
