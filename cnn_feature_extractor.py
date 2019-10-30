@@ -12,25 +12,25 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
     print('feature extraction started for split :', split)
 
     data_file_flat = {
-        'train': 'data/verb_imsitu_train_flat.hdf5',
-        'val': 'data/verb_imsitu_val_flat.hdf5',
-        'test': 'data/verb_imsitu_test_flat.hdf5'}
+        'train': 'data/agent_imsitu_train_flat.hdf5',
+        'val': 'data/agent_imsitu_val_flat.hdf5',
+        'test': 'data/agent_imsitu_test_flat.hdf5'}
     data_file_flat_relu = {
-        'train': 'data/verb_imsitu_train_flat_relu.hdf5',
-        'val': 'data/verb_imsitu_val_flat_relu.hdf5',
-        'test': 'data/verb_imsitu_test_flat_relu.hdf5'}
+        'train': 'data/agent_imsitu_train_flat_relu.hdf5',
+        'val': 'data/agent_imsitu_val_flat_relu.hdf5',
+        'test': 'data/agent_imsitu_test_flat_relu.hdf5'}
     data_file_grid = {
-        'train': 'data/verb_imsitu_train_grid.hdf5',
-        'val': 'data/verb_imsitu_val_grid.hdf5',
-        'test': 'data/verb_imsitu_test_grid.hdf5'}
+        'train': 'data/agent_imsitu_train_grid.hdf5',
+        'val': 'data/agent_imsitu_val_grid.hdf5',
+        'test': 'data/agent_imsitu_test_grid.hdf5'}
     indices_file = {
-        'train': 'data/verb_imsitu_train_imgid2idx.pkl',
-        'val': 'data/verb_imsitu_val_imgid2idx.pkl',
-        'test': 'data/verb_imsitu_test_imgid2idx.pkl'}
+        'train': 'data/agent_imsitu_train_imgid2idx.pkl',
+        'val': 'data/agent_imsitu_val_imgid2idx.pkl',
+        'test': 'data/agent_imsitu_test_imgid2idx.pkl'}
     ids_file = {
-        'train': 'data/verb_imsitu_train_ids.pkl',
-        'val': 'data/verb_imsitu_val_ids.pkl',
-        'test': 'data/verb_imsitu_test_ids.pkl'}
+        'train': 'data/agent_imsitu_train_ids.pkl',
+        'val': 'data/agent_imsitu_val_ids.pkl',
+        'test': 'data/agent_imsitu_test_ids.pkl'}
 
     imgids = set()
     h_flat = h5py.File(data_file_flat[split], 'w')
@@ -50,7 +50,7 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
     model.eval()
     mx = len(data_loader)
     with torch.no_grad():
-        for i, (img_id, img, verb, labels) in enumerate(data_loader):
+        for i, (img_id, img, labels) in enumerate(data_loader):
             print("{}/{} batches - {}\r".format(i+1,mx, split)),
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
@@ -127,19 +127,19 @@ def main():
 
     encoder = imsitu_encoder.imsitu_encoder(train_set)
 
-    train_set = imsitu_loader.imsitu_loader_verb(imgset_folder, train_set, encoder,'train', encoder.train_transform)
+    train_set = imsitu_loader.imsitu_loader_agent(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
     constructor = 'build_%s' % args.model
-    model = getattr(single_role_vgg_classifier, constructor)(len(encoder.verb_list))
+    model = getattr(single_role_vgg_classifier, constructor)(len(encoder.agent_list))
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     dev_set = json.load(open(dataset_folder + '/' + args.dev_file))
-    dev_set = imsitu_loader.imsitu_loader_verb(imgset_folder, dev_set, encoder, 'val', encoder.dev_transform)
+    dev_set = imsitu_loader.imsitu_loader_agent(imgset_folder, dev_set, encoder, 'val', encoder.dev_transform)
     dev_loader = torch.utils.data.DataLoader(dev_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     test_set = json.load(open(dataset_folder + '/' + args.test_file))
-    test_set = imsitu_loader.imsitu_loader_verb(imgset_folder, test_set, encoder, 'test', encoder.dev_transform)
+    test_set = imsitu_loader.imsitu_loader_agent(imgset_folder, test_set, encoder, 'test', encoder.dev_transform)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     if not os.path.exists(args.output_dir):
