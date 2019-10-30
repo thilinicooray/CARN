@@ -15,6 +15,10 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
         'train': 'data/verb_imsitu_train_flat.hdf5',
         'val': 'data/verb_imsitu_val_flat.hdf5',
         'test': 'data/verb_imsitu_test_flat.hdf5'}
+    data_file_flat_relu = {
+        'train': 'data/verb_imsitu_train_flat_relu.hdf5',
+        'val': 'data/verb_imsitu_val_flat_relu.hdf5',
+        'test': 'data/verb_imsitu_test_flat_relu.hdf5'}
     data_file_grid = {
         'train': 'data/verb_imsitu_train_grid.hdf5',
         'val': 'data/verb_imsitu_val_grid.hdf5',
@@ -33,6 +37,10 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
     img_features_flat = h_flat.create_dataset(
         'image_features', (dataset_size, 1024), 'f')
 
+    h_flat_relu = h5py.File(data_file_flat_relu[split], 'w')
+    img_features_flat_relu = h_flat_relu.create_dataset(
+        'image_features', (dataset_size, 1024), 'f')
+
     h_grid = h5py.File(data_file_grid[split], 'w')
     img_features_grid = h_grid.create_dataset(
         'image_features', (dataset_size, 49, 512), 'f')
@@ -42,7 +50,7 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
     model.eval()
     mx = len(data_loader)
     with torch.no_grad():
-        for i, (img_id, img, verb, labels) in enumerate(data_loader):
+        for i, (img_id, img, labels) in enumerate(data_loader):
             print("{}/{} batches - {}\r".format(i+1,mx, split)),
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
@@ -56,6 +64,7 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
             grid_features = grid_features.permute(0, 2, 1)
 
             flat_features = model.classifier[:-3](org_features.view(-1, 512*7*7))
+            flat_features_relu = model.classifier[:-2](org_features.view(-1, 512*7*7))
 
             batch_size = img.size(0)
 
@@ -64,6 +73,7 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
                 imgids.add(image_id)
                 indices[image_id] = counter
                 img_features_flat[counter, :] = flat_features[j].cpu().numpy()
+                img_features_flat_relu[counter, :] = flat_features_relu[j].cpu().numpy()
                 img_features_grid[counter, :, :] = grid_features[j].cpu().numpy()
                 counter += 1
 
@@ -74,6 +84,7 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
 
     cPickle.dump(indices, open(indices_file[split], 'wb'))
     h_flat.close()
+    h_flat_relu.close()
     h_grid.close()
     print("done!")
 
@@ -146,11 +157,12 @@ def main():
         if len(args.resume_model) == 0:
             raise Exception('[pretrained module] not specified')
         utils.load_net(args.resume_model, [model])
-        optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3)
-        model_name = 'resume_all'
 
     if args.gpuid >= 0:
         model.cuda()
     extract_features(model, 'train', train_loader, args.gpuid, len(train_loader)*batch_size)
     extract_features(model, 'val', dev_loader, args.gpuid, len(dev_loader)*batch_size)
     extract_features(model, 'test', test_loader, args.gpuid, len(test_loader)*batch_size)
+
+if __name__ == "__main__":
+    main()

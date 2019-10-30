@@ -150,6 +150,49 @@ class imsitu_loader_verb_pretrained_img_feat(data.Dataset):
     def __len__(self):
         return len(self.annotations)
 
+class imsitu_loader_top_down_verb(data.Dataset):
+    def __init__(self, img_dir, annotation_file, encoder, split, transform=None, dataroot='data'):
+        self.img_dir = img_dir
+        self.annotations = annotation_file
+        self.ids = list(self.annotations.keys())
+        self.encoder = encoder
+        self.transform = transform
+
+        #get agent flat features
+        self.agent_img_id2idx = cPickle.load(
+            open(os.path.join(dataroot, 'agent_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
+        print('loading agent flat img features from h5 file')
+        agent_flat_h5_path = os.path.join(dataroot, 'agent_imsitu_%s_flat_relu.hdf5' % split)
+        with h5py.File(agent_flat_h5_path, 'r') as hf:
+            self.agent_features = np.array(hf.get('image_features'))
+
+        self.agent_flat_features = torch.from_numpy(self.agent_features)
+
+        #get place flat features
+        self.place_img_id2idx = cPickle.load(
+            open(os.path.join(dataroot, 'place_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
+        print('loading place flat img features from h5 file')
+        place_flat_h5_path = os.path.join(dataroot, 'place_imsitu_%s_flat_relu.hdf5' % split)
+        with h5py.File(place_flat_h5_path, 'r') as hf:
+            self.place_features = np.array(hf.get('image_features'))
+
+        self.place_flat_features = torch.from_numpy(self.place_features)
+
+    def __getitem__(self, index):
+        _id = self.ids[index]
+        ann = self.annotations[_id]
+        agent_flat_features = self.agent_flat_features[self.agent_img_id2idx[_id]]
+        place_flat_features = self.place_flat_features[self.place_img_id2idx[_id]]
+
+        img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
+        img = self.transform(img)
+
+        verb = self.encoder.encode_verb(ann)
+        return _id, img, agent_flat_features, place_flat_features, verb
+
+    def __len__(self):
+        return len(self.annotations)
+
 class imsitu_loader_negative_sampling(data.Dataset):
     def __init__(self, img_dir, annotation_file, encoder, dictionary, transform=None):
         self.img_dir = img_dir
