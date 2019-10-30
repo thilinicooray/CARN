@@ -233,3 +233,34 @@ class imsitu_loader_negative_sampling(data.Dataset):
 
     def __len__(self):
         return len(self.annotations)
+
+class imsitu_loader_verbimgfeat_4_role(data.Dataset):
+    def __init__(self, img_dir, annotation_file, encoder, split, transform=None, dataroot='data'):
+        self.img_dir = img_dir
+        self.annotations = annotation_file
+        self.ids = list(self.annotations.keys())
+        self.encoder = encoder
+        self.transform = transform
+
+        #get verb grid features
+        self.verb_img_id2idx = cPickle.load(
+            open(os.path.join(dataroot, 'verb_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
+        print('loading verb grid img features from h5 file')
+        verb_grid_h5_path = os.path.join(dataroot, 'verb_imsitu_%s_grid.hdf5' % split)
+        with h5py.File(verb_grid_h5_path, 'r') as hf:
+            self.verb_features = np.array(hf.get('image_features'))
+
+        self.verb_grid_features = torch.from_numpy(self.verb_features)
+
+    def __getitem__(self, index):
+        _id = self.ids[index]
+        ann = self.annotations[_id]
+        #img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
+        #img = self.transform(img)
+        img = self.verb_grid_features[self.verb_img_id2idx[_id]]
+
+        verb, labels = self.encoder.encode(ann)
+        return _id, img, verb, labels
+
+    def __len__(self):
+        return len(self.annotations)
