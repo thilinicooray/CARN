@@ -106,17 +106,17 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
-                labels = torch.autograd.Variable(verb.cuda())
+                verb = torch.autograd.Variable(verb.cuda())
             else:
                 img = torch.autograd.Variable(img)
-                labels = torch.autograd.Variable(verb)
+                verb = torch.autograd.Variable(verb)
 
             verb_predict = model(img)
 
             top1.add_point_verb_only_eval(img_id, verb_predict, verb)
             top5.add_point_verb_only_eval(img_id, verb_predict, verb)
 
-            del verb_predict, img, labels
+            del verb_predict, img, verb
             #break
 
     return top1, top5, 0
