@@ -99,7 +99,7 @@ def build_top_down_baseline_verb(num_ans_classes):
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
+        hidden_size, hidden_size, num_ans_classes, 0.5)
 
     Dropout_C = nn.Dropout(0.1)
 
