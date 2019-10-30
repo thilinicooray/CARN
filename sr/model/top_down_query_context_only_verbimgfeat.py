@@ -60,8 +60,6 @@ class Top_Down_Baseline(nn.Module):
         ans_list = []
         n_heads = 1
 
-
-
         batch_size = img_feat.size(0)
 
         role_idx = self.encoder.get_role_ids_batch(gt_verb)

@@ -24,9 +24,11 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, covnet, query_composer, v_att, q_net, v_net, classifier, Dropout_C):
+    def __init__(self, covnet, agent_proj, place_proj, query_composer, v_att, q_net, v_net, classifier, Dropout_C):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
+        self.agent_proj = agent_proj
+        self.place_proj = place_proj
         self.query_composer = query_composer
         self.v_att = v_att
         self.q_net = q_net
@@ -43,8 +45,8 @@ class Top_Down_Baseline(nn.Module):
         v = img_org.permute(0, 2, 1)
 
 
-        concat_query = torch.cat([ agent_feat, place_feat], -1)
-        q_emb = self.query_composer(concat_query)
+        concat_query = torch.cat([ self.agent_proj(agent_feat), self.place_proj(place_feat)], -1)
+        q_emb = self.Dropout_C(self.query_composer(concat_query))
 
         att = self.v_att(v, q_emb)
         v_emb = (att * v).sum(1)
@@ -90,7 +92,9 @@ def build_top_down_baseline_verb(num_ans_classes):
     hidden_size = 1024
     img_embedding_size = 512
     covnet = vgg16_modified()
-    query_composer = FCNet([hidden_size * 2, hidden_size])
+    agent_proj = FCNet([hidden_size, hidden_size//2 ])
+    place_proj = FCNet([hidden_size, hidden_size//2 ])
+    query_composer = FCNet([hidden_size, hidden_size])
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
@@ -99,7 +103,7 @@ def build_top_down_baseline_verb(num_ans_classes):
 
     Dropout_C = nn.Dropout(0.1)
 
-    return Top_Down_Baseline(covnet, query_composer, v_att, q_net,
+    return Top_Down_Baseline(covnet, agent_proj, place_proj, query_composer, v_att, q_net,
                              v_net, classifier, Dropout_C)
 
 

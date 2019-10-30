@@ -206,6 +206,8 @@ def main():
         utils.set_trainable(model, True)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.agent_proj.parameters()},
+            {'params': model.place_proj.parameters()},
             {'params': model.query_composer.parameters()},
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
