@@ -133,6 +133,8 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
+            verb_point = img_feat * updated_q_emb
+
             att = self.v_att(img, updated_q_emb)
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
@@ -148,7 +150,7 @@ class Top_Down_Baseline(nn.Module):
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2
+            out = mfb_l2 + verb_point
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out
