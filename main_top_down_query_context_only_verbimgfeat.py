@@ -13,33 +13,35 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
     print_freq = 400
     dev_score_list = []
 
-    '''if gpu_mode >= 0 :
+    if gpu_mode >= 0 :
         ngpus = 2
         device_array = [i for i in range(0,ngpus)]
 
         pmodel = torch.nn.DataParallel(model, device_ids=device_array)
     else:
-        pmodel = model'''
-    pmodel = model
+        pmodel = model
+    #pmodel = model
 
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
     for epoch in range(max_epoch):
 
-        for i, (_, img, verb, labels) in enumerate(train_loader):
+        for i, (_, img, img_feat, verb, labels) in enumerate(train_loader):
             total_steps += 1
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
+                img_feat = torch.autograd.Variable(img_feat.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
                 labels = torch.autograd.Variable(labels.cuda())
             else:
                 img = torch.autograd.Variable(img)
+                img_feat = torch.autograd.Variable(img_feat)
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = pmodel(img, verb)
+            role_predict = pmodel(img, img_feat, verb)
             loss = model.calculate_loss(verb, role_predict, labels)
 
             loss.backward()
@@ -90,7 +92,7 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
                 top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
-            del role_predict, loss, img, verb, labels
+            del role_predict, loss, img, img_feat, verb, labels
         print('Epoch ', epoch, ' completed!')
         scheduler.step()
 
@@ -102,18 +104,20 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
-        for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+        for i, (img_id, img, img_feat, verb, labels) in enumerate(dev_loader):
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
+                img_feat = torch.autograd.Variable(img_feat.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
                 labels = torch.autograd.Variable(labels.cuda())
             else:
                 img = torch.autograd.Variable(img)
+                img_feat = torch.autograd.Variable(img_feat)
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model(img, verb)
+            role_predict = model(img, img_feat, verb)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -203,6 +207,8 @@ def main():
         model_name = 'train_full'
         utils.set_trainable(model, True)
         optimizer = torch.optim.Adamax([
+            {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.img_feat_combiner.parameters()},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
             {'params': model.query_composer.parameters()},

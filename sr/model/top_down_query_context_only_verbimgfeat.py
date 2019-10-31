@@ -40,8 +40,10 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
+    def __init__(self, convnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
+        self.convnet = convnet
+        self.img_feat_combiner = img_feat_combiner
         self.role_emb = role_emb
         self.verb_emb = verb_emb
         self.query_composer = query_composer
@@ -54,25 +56,31 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
 
-    def forward(self, img_feat, gt_verb):
+    def forward(self, v_org, img_feat, gt_verb):
 
         q_list = []
         ans_list = []
         n_heads = 1
 
-        batch_size = img_feat.size(0)
+        img_features_org = self.convnet(v_org)
+        batch_size, n_channel, conv_h, conv_w = img_features_org.size()
+
+        img_features_org = img_features_org.view(batch_size, -1, conv_h* conv_w)
+        img_features_org = img_features_org.permute(0, 2, 1)
+
+        img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
+
+        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
+
+        img = img.transpose(0,1)
+        img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, img.size(-1))
 
         role_idx = self.encoder.get_role_ids_batch(gt_verb)
 
         if torch.cuda.is_available():
             role_idx = role_idx.to(torch.device('cuda'))
 
-        img = img_feat
 
-        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
-
-        img = img.transpose(0,1)
-        img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, img.size(-1))
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -208,20 +216,22 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     word_embedding_size = 300
     img_embedding_size = 512
 
+    covnet = vgg16_modified()
+    img_feat_combiner = weight_norm(nn.Linear(img_embedding_size * 2, img_embedding_size * 2), dim=None)
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
+    v_att = Attention(img_embedding_size*2, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
-    v_net = FCNet([img_embedding_size, hidden_size])
+    v_net = FCNet([img_embedding_size*2, hidden_size])
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    return Top_Down_Baseline(role_emb, verb_emb, query_composer, v_att, q_net,
+    return Top_Down_Baseline(covnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder)
 
 

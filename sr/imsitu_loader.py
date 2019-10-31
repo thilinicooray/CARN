@@ -255,12 +255,12 @@ class imsitu_loader_verbimgfeat_4_role(data.Dataset):
     def __getitem__(self, index):
         _id = self.ids[index]
         ann = self.annotations[_id]
-        #img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
-        #img = self.transform(img)
-        img = self.verb_grid_features[self.verb_img_id2idx[_id]]
+        img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
+        img = self.transform(img)
+        img_feat = self.verb_grid_features[self.verb_img_id2idx[_id]]
 
         verb, labels = self.encoder.encode(ann)
-        return _id, img, verb, labels
+        return _id, img, img_feat, verb, labels
 
     def __len__(self):
         return len(self.annotations)
