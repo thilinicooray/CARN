@@ -40,7 +40,8 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
+    def __init__(self, convnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer,
+                 w_q, w_i, w_qc, w_prev, Dropout_C, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.img_feat_combiner = img_feat_combiner
@@ -53,6 +54,10 @@ class Top_Down_Baseline(nn.Module):
         self.updated_query_composer = updated_query_composer
         self.neighbour_attention = neighbour_attention
         self.Dropout_C = Dropout_C
+        self.w_q = w_q
+        self.w_i = w_i
+        self.w_qc = w_qc
+        self.w_prev = w_prev
         self.classifier = classifier
         self.encoder = encoder
 
@@ -155,8 +160,12 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2'''
 
-            gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out + out_verb
+            '''gate = torch.sigmoid(q_list[-1] * q_repr)
+            out = gate * ans_list[-1] + (1-gate) * out + out_verb'''
+
+            ctx_gate = torch.sigmoid(self.w_q(out) + self.w_i(out_verb))
+            out = self.Dropout_C((1-ctx_gate)* out_verb + ctx_gate * torch.tanh(self.w_qc(out) + self.w_prev(ans_list[-1])))
+
 
             q_list.append(q_repr)
             ans_list.append(out)
@@ -240,10 +249,15 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
+    w_q = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
+    w_i = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
+    w_qc = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
+    w_prev = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
+
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(covnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, w_q, w_i, w_qc, w_prev, classifier, encoder)
 
 

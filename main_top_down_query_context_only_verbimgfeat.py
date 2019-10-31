@@ -217,6 +217,10 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
+            {'params': model.w_i.parameters()},
+            {'params': model.w_q.parameters()},
+            {'params': model.w_qc.parameters()},
+            {'params': model.w_prev.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
