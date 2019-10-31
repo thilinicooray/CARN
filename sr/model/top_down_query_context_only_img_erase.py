@@ -55,8 +55,8 @@ class SELayer(nn.Module):
         return x * (1-y).expand_as(x)
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer,
-                 w_q, w_i, w_qc, w_prev, Dropout_C, classifier, encoder, combo_ctx_gate, final_att_proj):
+    def __init__(self, convnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net, v_net, neighbour_attention, updated_query_composer,Dropout_C,
+                 w_q, w_i, w_qc, w_prev,  classifier, encoder, combo_ctx_gate, final_att_proj):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = convnet
         self.img_feat_combiner = img_feat_combiner
