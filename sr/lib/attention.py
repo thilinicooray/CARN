@@ -177,7 +177,7 @@ class Attention_logits(nn.Module):
         logits = self.logits(v, q)
 
         w = nn.functional.softmax(logits, 1)
-        return w
+        return w, logits
 
     def logits(self, v, q):
         num_objs = v.size(1)
