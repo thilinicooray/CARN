@@ -105,8 +105,8 @@ class Top_Down_Baseline(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        out = q_repr * v_repr
-        '''mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+        #out = q_repr * v_repr
+        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -115,7 +115,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2'''
+        out = mfb_l2
 
         q_list.append(q_repr)
         ans_list.append(out)
@@ -130,7 +130,18 @@ class Top_Down_Baseline(nn.Module):
         v_emb_verb = (att_verb * img_v).sum(1)
         v_repr_verb = self.v_net(v_emb_verb)
 
-        out_verb = q_repr * v_repr_verb
+        #out_verb = q_repr * v_repr_verb
+
+        mfb_iq_eltwise_verb = torch.mul(q_repr, v_repr_verb)
+
+        mfb_iq_drop_verb = self.Dropout_C(mfb_iq_eltwise_verb)
+
+        mfb_iq_resh_verb = mfb_iq_drop_verb.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+        mfb_iq_sumpool_verb = torch.sum(mfb_iq_resh_verb, 3, keepdim=True)    # N x 1 x 1000 x 1
+        mfb_out_verb = torch.squeeze(mfb_iq_sumpool_verb)                     # N x 1000
+        mfb_sign_sqrt_verb = torch.sqrt(F.relu(mfb_out_verb)) - torch.sqrt(F.relu(-mfb_out_verb))
+        mfb_l2_verb = F.normalize(mfb_sign_sqrt_verb)
+        out_verb = mfb_l2_verb
 
 
         for i in range(1):
@@ -148,8 +159,8 @@ class Top_Down_Baseline(nn.Module):
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(updated_q_emb)
 
-            out = q_repr * v_repr
-            '''mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+            #out = q_repr * v_repr
+            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
             mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -158,7 +169,7 @@ class Top_Down_Baseline(nn.Module):
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2'''
+            out = mfb_l2
 
             '''gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out + out_verb'''
