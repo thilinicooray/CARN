@@ -151,7 +151,7 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            gate = torch.sigmoid(q_list[-1] * q_repr)
+            gate = torch.sigmoid(q_list[-1].contiguous().view(-1, q_emb_mul_head.size(-1)) * q_repr.contiguous().view(-1, q_emb_mul_head.size(-1)))
             out = gate * ans_list[-1] + (1-gate) * out
 
             q_list.append(q_repr)
