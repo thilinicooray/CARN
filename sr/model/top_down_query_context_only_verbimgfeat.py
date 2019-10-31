@@ -176,7 +176,7 @@ class Top_Down_Baseline(nn.Module):
 
         return role_label_pred
 
-    def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
+    '''def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
         batch_size = role_label_pred.size()[0]
 
@@ -190,7 +190,26 @@ class Top_Down_Baseline(nn.Module):
                 loss += frame_loss
 
         final_loss = loss/batch_size
-        return final_loss
+        return final_loss'''
+
+    def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
+
+        batch_size = role_label_pred.size()[0]
+        criterion = nn.CrossEntropyLoss()
+
+        print(role_label_pred.size(), gt_labels.size())
+
+        role_label_pred = role_label_pred.contiguous().view(batch_size* self.encoder.max_role_count, -1)
+        role_label_pred = role_label_pred.expand(3, role_label_pred.size(0), role_label_pred.size(1))
+        role_label_pred = role_label_pred.transpose(0,1)
+        role_label_pred = role_label_pred.contiguous().view(-1, role_label_pred.size(-1))
+
+        print('new pred', role_label_pred.size(), role_label_pred[:6])
+
+
+
+
+
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
@@ -255,7 +274,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     w_prev = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
 
     classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
+        hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
 
     return Top_Down_Baseline(covnet, img_feat_combiner, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C, w_q, w_i, w_qc, w_prev, classifier, encoder)
