@@ -115,6 +115,19 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list.append(out)
 
+        #get answer with verb grid features
+        img_v = img_feat.expand(self.encoder.max_role_count, img_feat.size(0), img_feat.size(1), img_feat.size(2))
+
+        img_v = img_v.transpose(0,1)
+        img_v = img_v.contiguous().view(batch_size * self.encoder.max_role_count, -1, img_v.size(-1))
+
+        att_verb = self.v_att(img_v, q_emb)
+        v_emb_verb = (att_verb * img_v).sum(1)
+        v_repr_verb = self.v_net(v_emb_verb)
+
+        out_verb = q_repr * v_repr_verb
+
+
         for i in range(1):
 
             cur_group = out.contiguous().view(batch_size, self.encoder.max_role_count, -1)
@@ -143,7 +156,7 @@ class Top_Down_Baseline(nn.Module):
             out = mfb_l2'''
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out
+            out = gate * ans_list[-1] + (1-gate) * out + out_verb
 
             q_list.append(q_repr)
             ans_list.append(out)
