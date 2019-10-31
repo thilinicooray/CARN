@@ -60,7 +60,7 @@ class Top_Down_Baseline(nn.Module):
 
         q_list = []
         ans_list = []
-        n_heads = 1
+        n_heads = 2
 
         img_features_org = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features_org.size()
@@ -68,23 +68,17 @@ class Top_Down_Baseline(nn.Module):
         img_features_org = img_features_org.view(batch_size, -1, conv_h* conv_w)
         img_features_org = img_features_org.permute(0, 2, 1)
 
-        #img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
+        img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
 
-        img = img_features_org.expand(self.encoder.max_role_count, img_features_org.size(0), img_features_org.size(1), img_features_org.size(2))
+        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
 
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, img.size(-1))
-
-        img_feat = img_feat.expand(self.encoder.max_role_count, img_feat.size(0), img_feat.size(1))
-        img_feat = img_feat.transpose(0,1)
-        img_feat = img_feat.contiguous().view(batch_size * self.encoder.max_role_count, -1)
 
         role_idx = self.encoder.get_role_ids_batch(gt_verb)
 
         if torch.cuda.is_available():
             role_idx = role_idx.to(torch.device('cuda'))
-
-
 
         verb_embd = self.verb_emb(gt_verb)
         role_embd = self.role_emb(role_idx)
@@ -95,18 +89,22 @@ class Top_Down_Baseline(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
 
-        verb_point = img_feat * q_emb
-
         # mask out non-existing roles from (max_role x max_role) adj. matrix
         mask = self.encoder.get_adj_matrix_noself(gt_verb)
 
         if torch.cuda.is_available():
             mask = mask.to(torch.device('cuda'))
 
-        att = self.v_att(img, q_emb)
-        v_emb = (att * img).sum(1)
+        img_mul_head = img.view(img.size(0), img.size(1),  n_heads, -1).transpose(1, 2)
+        img_mul_head = img_mul_head.contiguous().view(-1, img_mul_head.size(2), img_mul_head.size(-1))
+
+        q_emb_mul_head = q_emb.view(q_emb.size(0), n_heads, -1)
+        q_emb_mul_head = q_emb_mul_head.contiguous().view(-1, q_emb_mul_head.size(-1))
+
+        att = self.v_att(img_mul_head, q_emb_mul_head)
+        v_emb = (att * img_mul_head).sum(1)
         v_repr = self.v_net(v_emb)
-        q_repr = self.q_net(q_emb)
+        q_repr = self.q_net(q_emb_mul_head)
 
         #out = q_repr * v_repr
         mfb_iq_eltwise = torch.mul(q_repr, v_repr)
@@ -118,7 +116,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2 + verb_point
+        out = mfb_l2
 
         q_list.append(q_repr)
         ans_list.append(out)
@@ -133,12 +131,13 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            verb_point = img_feat * updated_q_emb
+            q_emb_mul_head = updated_q_emb.view(updated_q_emb.size(0), n_heads, -1)
+            q_emb_mul_head = q_emb_mul_head.contiguous().view(-1, q_emb_mul_head.size(-1))
 
-            att = self.v_att(img, updated_q_emb)
-            v_emb = (att * img).sum(1)
+            att = self.v_att(img_mul_head, q_emb_mul_head)
+            v_emb = (att * img_mul_head).sum(1)
             v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(updated_q_emb)
+            q_repr = self.q_net(q_emb_mul_head)
 
             #out = q_repr * v_repr
             mfb_iq_eltwise = torch.mul(q_repr, v_repr)
@@ -150,7 +149,7 @@ class Top_Down_Baseline(nn.Module):
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2 + verb_point
+            out = mfb_l2
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out
@@ -223,6 +222,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     hidden_size = 1024
     word_embedding_size = 300
     img_embedding_size = 512
+    n_heads = 2
 
     covnet = vgg16_modified()
     img_feat_combiner = weight_norm(nn.Linear(img_embedding_size * 2, img_embedding_size * 2), dim=None)
@@ -230,8 +230,8 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
-    q_net = FCNet([hidden_size, hidden_size ])
+    v_att = Attention(img_embedding_size, hidden_size//n_heads, hidden_size)
+    q_net = FCNet([hidden_size//n_heads, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
