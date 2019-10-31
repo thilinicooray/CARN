@@ -68,12 +68,16 @@ class Top_Down_Baseline(nn.Module):
         img_features_org = img_features_org.view(batch_size, -1, conv_h* conv_w)
         img_features_org = img_features_org.permute(0, 2, 1)
 
-        img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
+        #img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
 
-        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
+        img = img_features_org.expand(self.encoder.max_role_count, img_features_org.size(0), img_features_org.size(1), img_features_org.size(2))
 
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, img.size(-1))
+
+        img_feat = img_feat.expand(self.encoder.max_role_count, img_feat.size(0), img_feat.size(1))
+        img_feat = img_feat.transpose(0,1)
+        img_feat = img_feat.contiguous().view(batch_size * self.encoder.max_role_count, -1)
 
         role_idx = self.encoder.get_role_ids_batch(gt_verb)
 
@@ -90,6 +94,8 @@ class Top_Down_Baseline(nn.Module):
         concat_query = torch.cat([ verb_embed_expand, role_embd], -1)
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
         q_emb = self.query_composer(role_verb_embd)
+
+        verb_point = img_feat * q_emb
 
         # mask out non-existing roles from (max_role x max_role) adj. matrix
         mask = self.encoder.get_adj_matrix_noself(gt_verb)
@@ -112,7 +118,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2
+        out = mfb_l2 + verb_point
 
         q_list.append(q_repr)
         ans_list.append(out)
@@ -222,9 +228,9 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size*2, hidden_size, hidden_size)
+    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
-    v_net = FCNet([img_embedding_size*2, hidden_size])
+    v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
