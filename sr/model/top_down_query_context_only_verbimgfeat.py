@@ -163,8 +163,8 @@ class Top_Down_Baseline(nn.Module):
             '''gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out + out_verb'''
 
-            ctx_gate = torch.sigmoid(self.w_q(out) + self.w_i(out_verb))
-            out = self.Dropout_C((1-ctx_gate)* out_verb + ctx_gate * torch.tanh(self.w_qc(out) + self.w_prev(ans_list[-1])))
+            ctx_gate = torch.sigmoid(out + out_verb)
+            out = self.Dropout_C((1-ctx_gate)* out_verb + ctx_gate * torch.tanh(out + ans_list[-1]))
 
 
             q_list.append(q_repr)
