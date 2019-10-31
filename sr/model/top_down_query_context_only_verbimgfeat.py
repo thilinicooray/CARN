@@ -203,8 +203,9 @@ class Top_Down_Baseline(nn.Module):
         role_label_pred = role_label_pred.expand(3, role_label_pred.size(0), role_label_pred.size(1))
         role_label_pred = role_label_pred.transpose(0,1)
         role_label_pred = role_label_pred.contiguous().view(-1, role_label_pred.size(-1))
+        print(role_label_pred.size(), gt_label_turned.size())
 
-        loss = criterion(role_label_pred, gt_label_turned) * 3
+        loss = criterion(role_label_pred, gt_label_turned.squeeze(1)) * 3
 
         return loss
 
