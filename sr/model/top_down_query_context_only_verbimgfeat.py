@@ -197,20 +197,16 @@ class Top_Down_Baseline(nn.Module):
         batch_size = role_label_pred.size()[0]
         criterion = nn.CrossEntropyLoss()
 
-        print(role_label_pred.size(), gt_labels.size())
-        gt_label_turned = gt_labels.transpose(1,2).view(batch_size* self.encoder.max_role_count*3, -1)
+        gt_label_turned = gt_labels.transpose(1,2).contiguous().view(batch_size* self.encoder.max_role_count*3, -1)
 
         role_label_pred = role_label_pred.contiguous().view(batch_size* self.encoder.max_role_count, -1)
         role_label_pred = role_label_pred.expand(3, role_label_pred.size(0), role_label_pred.size(1))
         role_label_pred = role_label_pred.transpose(0,1)
         role_label_pred = role_label_pred.contiguous().view(-1, role_label_pred.size(-1))
 
-        print(gt_label_turned.size(), role_label_pred.size())
+        loss = criterion(role_label_pred, gt_label_turned) * 3
 
-
-
-
-
+        return loss
 
 
 class MultiHeadedAttention(nn.Module):
