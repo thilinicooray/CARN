@@ -60,7 +60,7 @@ class Top_Down_Baseline(nn.Module):
 
         q_list = []
         ans_list = []
-        n_heads = 2
+        n_heads = 1
 
         img_features_org = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features_org.size()
@@ -68,9 +68,9 @@ class Top_Down_Baseline(nn.Module):
         img_features_org = img_features_org.view(batch_size, -1, conv_h* conv_w)
         img_features_org = img_features_org.permute(0, 2, 1)
 
-        img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
+        #img = F.relu(self.img_feat_combiner(torch.cat([img_features_org,img_feat], -1)))
 
-        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
+        img = img_features_org.expand(self.encoder.max_role_count, img_features_org.size(0), img_features_org.size(1), img_features_org.size(2))
 
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, img.size(-1))
@@ -95,19 +95,13 @@ class Top_Down_Baseline(nn.Module):
         if torch.cuda.is_available():
             mask = mask.to(torch.device('cuda'))
 
-        img_mul_head = img.view(img.size(0), img.size(1),  n_heads, -1).transpose(1, 2)
-        img_mul_head = img_mul_head.contiguous().view(-1, img_mul_head.size(2), img_mul_head.size(-1))
-
-        q_emb_mul_head = q_emb.view(q_emb.size(0), n_heads, -1)
-        q_emb_mul_head = q_emb_mul_head.contiguous().view(-1, q_emb_mul_head.size(-1))
-
-        att = self.v_att(img_mul_head, q_emb_mul_head)
-        v_emb = (att * img_mul_head).sum(1)
+        att = self.v_att(img, q_emb)
+        v_emb = (att * img).sum(1)
         v_repr = self.v_net(v_emb)
-        q_repr = self.q_net(q_emb_mul_head)
+        q_repr = self.q_net(q_emb)
 
-        #out = q_repr * v_repr
-        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+        out = q_repr * v_repr
+        '''mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -116,7 +110,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2
+        out = mfb_l2'''
 
         q_list.append(q_repr)
         ans_list.append(out)
@@ -131,16 +125,13 @@ class Top_Down_Baseline(nn.Module):
 
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-            q_emb_mul_head = updated_q_emb.view(updated_q_emb.size(0), n_heads, -1)
-            q_emb_mul_head = q_emb_mul_head.contiguous().view(-1, q_emb_mul_head.size(-1))
-
-            att = self.v_att(img_mul_head, q_emb_mul_head)
-            v_emb = (att * img_mul_head).sum(1)
+            att = self.v_att(img, updated_q_emb)
+            v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
-            q_repr = self.q_net(q_emb_mul_head)
+            q_repr = self.q_net(updated_q_emb)
 
-            #out = q_repr * v_repr
-            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+            out = q_repr * v_repr
+            '''mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
             mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -149,11 +140,9 @@ class Top_Down_Baseline(nn.Module):
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2
+            out = mfb_l2'''
 
-            #gate = torch.sigmoid(q_list[-1].contiguous().view(-1, q_emb_mul_head.size(-1)*n_heads) * q_repr.contiguous().view(-1, q_emb_mul_head.size(-1)*n_heads))
-            #print(gate.size(), out.size())
-            gate = ans_list[-1] * out
+            gate = torch.sigmoid(q_list[-1] * q_repr)
             out = gate * ans_list[-1] + (1-gate) * out
 
             q_list.append(q_repr)
