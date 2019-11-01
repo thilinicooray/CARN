@@ -88,7 +88,7 @@ class Top_Down_Baseline(nn.Module):
 
         criterion = nn.CrossEntropyLoss()
 
-        loss = criterion(verb_pred, gt_verbs.squeeze(1))
+        loss = criterion(verb_pred, gt_verbs.squeeze())
 
         return loss
 

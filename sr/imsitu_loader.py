@@ -161,7 +161,7 @@ class imsitu_loader_top_down_verb(data.Dataset):
         #get agent flat features
         self.agent_img_id2idx = cPickle.load(
             open(os.path.join(dataroot, 'agent_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
-        print('loading agent flat img features from h5 file')
+        print('loading agent flat img features from h5 file for split :', split)
         agent_flat_h5_path = os.path.join(dataroot, 'agent_imsitu_%s_flat.hdf5' % split)
         with h5py.File(agent_flat_h5_path, 'r') as hf:
             self.agent_features = np.array(hf.get('image_features'))
@@ -171,7 +171,7 @@ class imsitu_loader_top_down_verb(data.Dataset):
         #get place flat features
         self.place_img_id2idx = cPickle.load(
             open(os.path.join(dataroot, 'place_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
-        print('loading place flat img features from h5 file')
+        print('loading place flat img features from h5 file for split :', split)
         place_flat_h5_path = os.path.join(dataroot, 'place_imsitu_%s_flat.hdf5' % split)
         with h5py.File(place_flat_h5_path, 'r') as hf:
             self.place_features = np.array(hf.get('image_features'))
