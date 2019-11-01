@@ -76,21 +76,21 @@ class Top_Down_Baseline(nn.Module):
         q_emb = self.Dropout_C(self.query_composer(concat_query))
 
         img_features = self.convnet(v_org)
-        #img_feat_flat = self.avg_pool(img_features).squeeze()
+        img_feat_flat = self.avg_pool(img_features).squeeze()
         batch_size, n_channel, conv_h, conv_w = img_features.size()
-        exp_img_features = self.conv_exp(img_features)
+        #exp_img_features = self.conv_exp(img_features)
 
         soft_query = agent_feat + place_feat
-        ctx_updated_img = self.resize_img_flat(exp_img_features) * soft_query.view(batch_size, n_channel*2, 1, 1)
-        ctx_updated_img = self.resize_img_grid(ctx_updated_img)
+        #ctx_updated_img = self.resize_img_flat(exp_img_features) * soft_query.view(batch_size, n_channel*2, 1, 1)
+        #ctx_updated_img = self.resize_img_grid(ctx_updated_img)
 
-        exp_img_flat = self.avg_pool(ctx_updated_img).squeeze()
+        #exp_img_flat = self.avg_pool(ctx_updated_img).squeeze()
 
-        ext_ctx = exp_img_flat
+        ext_ctx = self.resize_img_flat(img_feat_flat) * soft_query
 
         #img_features_combined = torch.cat([img_features, exp_img_features], 1)
 
-        img_org = exp_img_features.view(batch_size, -1, conv_h* conv_w)
+        img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
 
 
@@ -115,7 +115,7 @@ class Top_Down_Baseline(nn.Module):
         self.feat_combiner.flatten_parameters()
         lstm_out, (h, _) = self.feat_combiner(tot_verb)
         q_emb_up = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
-        out = self.Dropout_C(self.lstm_proj2(q_emb_up))
+        out = self.lstm_proj2(q_emb_up)
 
         logits = self.classifier(out)
 
@@ -146,8 +146,8 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
 
-    #resize_img_flat = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
-    resize_img_flat = nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False)
+    resize_img_flat = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
+    #resize_img_flat = nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False)
     resize_img_grid = SELayer(img_embedding_size*2)
 
     #feat_combiner = nn.GRUCell(hidden_size, hidden_size, bias=True)
