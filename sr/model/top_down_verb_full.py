@@ -14,6 +14,23 @@ from ..lib.fc import FCNet
 import torchvision as tv
 from ..utils import cross_entropy_loss
 
+class SELayer(nn.Module):
+    def __init__(self, channel, reduction=4):
+        super(SELayer, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
 class vgg16_modified(nn.Module):
     def __init__(self):
         super(vgg16_modified, self).__init__()
@@ -56,16 +73,16 @@ class Top_Down_Baseline(nn.Module):
         q_emb = self.Dropout_C(self.query_composer(concat_query))
 
         img_features = self.convnet(v_org)
-        img_feat_flat = self.avg_pool(img_features).squeeze()
+        #img_feat_flat = self.avg_pool(img_features).squeeze()
         batch_size, n_channel, conv_h, conv_w = img_features.size()
         exp_img_features = self.conv_exp(img_features)
         exp_img_flat = self.avg_pool(exp_img_features).squeeze()
 
-        img_feat_flat = self.resize_img_flat(torch.cat([img_feat_flat, exp_img_flat], -1))
+        img_feat_flat = self.resize_img_flat(exp_img_flat)
 
-        img_features_combined = torch.cat([img_features, exp_img_features], 1)
+        #img_features_combined = torch.cat([img_features, exp_img_features], 1)
 
-        img_org = img_features_combined.view(batch_size, -1, conv_h* conv_w)
+        img_org = exp_img_features.view(batch_size, -1, conv_h* conv_w)
         v = self.resize_img_grid(img_org.permute(0, 2, 1))
 
         soft_query = agent_feat + place_feat
@@ -106,21 +123,17 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     img_embedding_size = 512
 
     covnet = vgg16_modified()
-    conv_exp = nn.Sequential(
-        nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False),
-        nn.BatchNorm2d(hidden_size),
-        nn.ReLU()
-    )
+    conv_exp = SELayer(img_embedding_size)
     agent_emb = nn.Embedding(n_agents, word_embedding_size)
     place_emb = nn.Embedding(n_places, word_embedding_size)
     agent_classifier = agent_classifier
     place_classifier = place_classifier
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size*2, hidden_size, hidden_size)
+    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
-    v_net = FCNet([img_embedding_size*2, hidden_size])
+    v_net = FCNet([img_embedding_size, hidden_size])
 
-    resize_img_flat = weight_norm(nn.Linear(img_embedding_size*3, hidden_size), dim=None)
+    resize_img_flat = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
     resize_img_grid = weight_norm(nn.Linear(img_embedding_size*3, img_embedding_size*2), dim=None)
 
     classifier = SimpleClassifier(
