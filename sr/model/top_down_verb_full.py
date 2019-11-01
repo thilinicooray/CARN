@@ -76,17 +76,21 @@ class Top_Down_Baseline(nn.Module):
         #img_feat_flat = self.avg_pool(img_features).squeeze()
         batch_size, n_channel, conv_h, conv_w = img_features.size()
         exp_img_features = self.conv_exp(img_features)
-        exp_img_flat = self.avg_pool(exp_img_features).squeeze()
 
-        img_feat_flat = self.resize_img_flat(exp_img_flat)
+        soft_query = agent_feat + place_feat
+        ctx_updated_img = self.resize_img_flat(exp_img_features) * soft_query.view(batch_size, n_channel*2, 1, 1)
+        ctx_updated_img = self.resize_img_grid(ctx_updated_img)
+
+        exp_img_flat = self.avg_pool(ctx_updated_img).squeeze()
+
+        ext_ctx = exp_img_flat
 
         #img_features_combined = torch.cat([img_features, exp_img_features], 1)
 
         img_org = exp_img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
 
-        soft_query = agent_feat + place_feat
-        ext_ctx = img_feat_flat * soft_query
+
 
         att = self.v_att(v, q_emb)
         v_emb = (att * v).sum(1)
@@ -133,8 +137,9 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
 
-    resize_img_flat = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
-    resize_img_grid = weight_norm(nn.Linear(img_embedding_size*3, img_embedding_size*2), dim=None)
+    #resize_img_flat = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
+    resize_img_flat = nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False)
+    resize_img_grid = SELayer(img_embedding_size*2)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
