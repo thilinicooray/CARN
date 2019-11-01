@@ -107,8 +107,8 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
 
     covnet = vgg16_modified()
     conv_exp = nn.Sequential(
-        nn.Conv2d(img_embedding_size, hidden_size*2, [1, 1], 1, 0, bias=False),
-        nn.BatchNorm2d(hidden_size*2),
+        nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False),
+        nn.BatchNorm2d(hidden_size),
         nn.ReLU()
     )
     agent_emb = nn.Embedding(n_agents, word_embedding_size)
@@ -120,8 +120,8 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size*2, hidden_size])
 
-    resize_img_flat = weight_norm(nn.Linear(img_embedding_size*5, hidden_size), dim=None)
-    resize_img_grid = weight_norm(nn.Linear(img_embedding_size*5, img_embedding_size*2), dim=None)
+    resize_img_flat = weight_norm(nn.Linear(img_embedding_size*3, hidden_size), dim=None)
+    resize_img_grid = weight_norm(nn.Linear(img_embedding_size*3, img_embedding_size*2), dim=None)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
