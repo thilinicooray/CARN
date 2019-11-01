@@ -175,6 +175,7 @@ def main():
     #loading classifier part from pretrained agent and place models
     constructor = 'build_single_role_classifier'
     agent_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.agent_label_list))
+
     utils.load_net(args.agent_model, [agent_model.classifier[-3:]])
 
     place_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.place_label_list))
@@ -217,10 +218,13 @@ def main():
         print('Training from the scratch.')
         model_name = 'train_full'
         utils.set_trainable(model, True)
+        utils.set_trainable(model.agent_classifier, False)
+        utils.set_trainable(model.place_classifier, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
-            {'params': model.agent_proj.parameters()},
-            {'params': model.place_proj.parameters()},
+            {'params': model.agent_emb.parameters()},
+            {'params': model.place_emb.parameters()},
+            {'params': model.resize_img_flat.parameters()},
             {'params': model.query_composer.parameters()},
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
