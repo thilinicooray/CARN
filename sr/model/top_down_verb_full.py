@@ -25,15 +25,17 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, convnet, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat,
-                 query_composer, v_att, q_net, v_net, classifier, Dropout_C):
+    def __init__(self, covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
+                 v_net, classifier, Dropout_C):
         super(Top_Down_Baseline, self).__init__()
-        self.convnet = convnet
+        self.convnet = covnet
+        self.conv_exp = conv_exp
         self.agent_emb = agent_emb
         self.place_emb = place_emb
         self.agent_classifier = agent_classifier
         self.place_classifier = place_classifier
         self.resize_img_flat = resize_img_flat
+        self.resize_img_grid = resize_img_grid
         self.query_composer = query_composer
         self.v_att = v_att
         self.q_net = q_net
@@ -54,12 +56,17 @@ class Top_Down_Baseline(nn.Module):
         q_emb = self.Dropout_C(self.query_composer(concat_query))
 
         img_features = self.convnet(v_org)
-        img_feat_flat = self.avg_pool(img_features)
-        img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
+        img_feat_flat = self.avg_pool(img_features).squeeze()
         batch_size, n_channel, conv_h, conv_w = img_features.size()
+        exp_img_features = self.conv_exp(img_features)
+        exp_img_flat = self.avg_pool(exp_img_features).squeeze()
 
-        img_org = img_features.view(batch_size, -1, conv_h* conv_w)
-        v = img_org.permute(0, 2, 1)
+        img_feat_flat = self.resize_img_flat(torch.cat([img_feat_flat, exp_img_flat], -1))
+
+        img_features_combined = torch.cat([img_features, exp_img_features], 1)
+
+        img_org = img_features_combined.view(batch_size, -1, conv_h* conv_w)
+        v = self.resize_img_grid(img_org.permute(0, 2, 1))
 
         soft_query = agent_feat + place_feat
         ext_ctx = img_feat_flat * soft_query
@@ -78,7 +85,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2 + self.Dropout_C(ext_ctx)
+        out = mfb_l2 + ext_ctx
 
         logits = self.classifier(out)
 
@@ -99,23 +106,29 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     img_embedding_size = 512
 
     covnet = vgg16_modified()
+    conv_exp = nn.Sequential(
+        nn.Conv2d(img_embedding_size, hidden_size*2, [1, 1], 1, 0, bias=False),
+        nn.BatchNorm2d(hidden_size*2),
+        nn.ReLU()
+    )
     agent_emb = nn.Embedding(n_agents, word_embedding_size)
     place_emb = nn.Embedding(n_places, word_embedding_size)
     agent_classifier = agent_classifier
     place_classifier = place_classifier
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
-    v_att = Attention(img_embedding_size, hidden_size, hidden_size)
+    v_att = Attention(img_embedding_size*2, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
-    v_net = FCNet([img_embedding_size, hidden_size])
+    v_net = FCNet([img_embedding_size*2, hidden_size])
 
-    resize_img_flat = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
+    resize_img_flat = weight_norm(nn.Linear(img_embedding_size*5, hidden_size), dim=None)
+    resize_img_grid = weight_norm(nn.Linear(img_embedding_size*5, img_embedding_size*2), dim=None)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     Dropout_C = nn.Dropout(0.1)
 
-    return Top_Down_Baseline(covnet, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat, query_composer, v_att, q_net,
+    return Top_Down_Baseline(covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
                              v_net, classifier, Dropout_C)
 
 

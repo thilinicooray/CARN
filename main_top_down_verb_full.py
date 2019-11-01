@@ -222,9 +222,11 @@ def main():
         utils.set_trainable(model.place_classifier, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.conv_exp.parameters()},
             {'params': model.agent_emb.parameters()},
             {'params': model.place_emb.parameters()},
             {'params': model.resize_img_flat.parameters()},
+            {'params': model.resize_img_grid.parameters()},
             {'params': model.query_composer.parameters()},
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
