@@ -231,6 +231,7 @@ def main():
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
+            {'params': model.feat_combiner.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

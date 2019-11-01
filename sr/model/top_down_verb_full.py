@@ -42,8 +42,9 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
-                 v_net, classifier, Dropout_C):
+    def __init__(self, covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier,
+                 resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
+                 v_net, classifier, Dropout_C, feat_combiner):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
         self.conv_exp = conv_exp
@@ -60,6 +61,7 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.Dropout_C = Dropout_C
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.feat_combiner = feat_combiner
 
     def forward(self, v_org, agent_feat, place_feat):
 
@@ -106,7 +108,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2 + ext_ctx
+        out = self.feat_combiner(mfb_l2, ext_ctx)
 
         logits = self.classifier(out)
 
@@ -141,12 +143,14 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     resize_img_flat = nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False)
     resize_img_grid = SELayer(img_embedding_size*2)
 
+    feat_combiner = nn.GRUCell(hidden_size, hidden_size, bias=True)
+
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     Dropout_C = nn.Dropout(0.3)
 
     return Top_Down_Baseline(covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
-                             v_net, classifier, Dropout_C)
+                             v_net, classifier, Dropout_C, feat_combiner)
 
 
