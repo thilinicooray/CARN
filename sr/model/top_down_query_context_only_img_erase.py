@@ -169,7 +169,7 @@ class Top_Down_Baseline(nn.Module):
             self.iteration_combiner.flatten_parameters()
             lstm_out, (h, _) = self.iteration_combiner(ans_list)
             iteration_hidden = h.permute(1, 0, 2).contiguous().view(batch_size*self.encoder.max_role_count, -1)
-            final = self.Dropout_C(self.iteration_combiner(iteration_hidden))
+            final = self.Dropout_C(self.lstm_projector(iteration_hidden))
 
 
         logits = self.classifier(final)
