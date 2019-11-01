@@ -78,7 +78,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2 + ext_ctx
+        out = mfb_l2 + self.Dropout_C(ext_ctx)
 
         logits = self.classifier(out)
 
