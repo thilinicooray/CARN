@@ -176,10 +176,10 @@ def main():
     constructor = 'build_single_role_classifier'
     agent_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.agent_label_list))
 
-    utils.load_net(args.agent_model, [agent_model.classifier[-3:]])
+    utils.load_net(args.agent_model, [agent_model])
 
     place_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.place_label_list))
-    utils.load_net(args.place_model, [place_model.classifier[-3:]])
+    utils.load_net(args.place_model, [place_model])
 
     #building current model
     constructor = 'build_%s' % args.model

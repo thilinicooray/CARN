@@ -32,9 +32,6 @@ def load_net(fname, net_list, prefix_list = None):
         else:
             dict = torch.load(fname)
 
-        print('source dict ', dict)
-        print('target ', net_list[i].state_dict())
-
         try:
             for k, v in net_list[i].state_dict().items():
                 if need_modification:
@@ -43,7 +40,7 @@ def load_net(fname, net_list, prefix_list = None):
                     param = torch.from_numpy(np.asarray(dict[k].cpu()))
                     v.copy_(param)
                 else:
-                    print('[Missed]: {}'.format(k))
+                    print('[Missed]: {}'.format(k), v.size())
         except Exception as e:
             print(e)
             pdb.set_trace()
