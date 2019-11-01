@@ -83,7 +83,7 @@ class Top_Down_Baseline(nn.Module):
         #img_features_combined = torch.cat([img_features, exp_img_features], 1)
 
         img_org = exp_img_features.view(batch_size, -1, conv_h* conv_w)
-        v = self.resize_img_grid(img_org.permute(0, 2, 1))
+        v = img_org.permute(0, 2, 1)
 
         soft_query = agent_feat + place_feat
         ext_ctx = img_feat_flat * soft_query
