@@ -142,7 +142,7 @@ class Top_Down_Baseline(nn.Module):
         ans_list.append(out)
 
         #context aware image erasing
-        ctx_logits = ctx_logits.contiguous().view(role_oh_encoding.size(0), role_oh_encoding.size(1), -1)
+        '''ctx_logits = ctx_logits.contiguous().view(role_oh_encoding.size(0), role_oh_encoding.size(1), -1)
         w_ctx = ctx_logits * role_oh_encoding.unsqueeze(-1)
 
         required_indices = [[1,2,3,4,5],[0,2,3,4,5],[0,1,3,4,5],[0,1,2,4,5],[0,1,2,3,5],[0,1,2,3,4]]
@@ -165,10 +165,8 @@ class Top_Down_Baseline(nn.Module):
                 updated_att = torch.cat((updated_att.clone(), updated_cur_role_att.unsqueeze(1)), 1)
 
 
-        context_erased_att = updated_att.contiguous().view(-1, updated_att.size(2), updated_att.size(3))
-        context_erased_img = (context_erased_att * img).sum(1)
-
-
+        context_erased_att = self.Dropout_C(updated_att.contiguous().view(-1, updated_att.size(2), updated_att.size(3)))
+        context_erased_img = (context_erased_att * img).sum(1)'''
 
         for i in range(1):
 
@@ -197,11 +195,11 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            gate = torch.sigmoid(q_list[-1] * q_repr)
-            out = gate * ans_list[-1] + (1-gate) * out
+            #gate = torch.sigmoid(q_list[-1] * q_repr)
+            #out = gate * ans_list[-1] + (1-gate) * out
 
-            ctx_gate = torch.sigmoid(self.w_i(context_erased_img) + self.w_q(out))
-            out = self.Dropout_C((1-ctx_gate)* self.w_qc(context_erased_img) + ctx_gate * torch.tanh(out))
+            ctx_gate = torch.sigmoid(self.w_i(q_list[-1]) + self.w_q(q_repr))
+            out = self.Dropout_C((1-ctx_gate)* self.w_qc(ans_list[-1]) + ctx_gate * torch.tanh(self.w_prev(out)))
 
 
             q_list.append(q_repr)
@@ -304,8 +302,8 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     Dropout_C = nn.Dropout(0.1)
 
     w_q = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
-    w_i = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
-    w_qc = weight_norm(nn.Linear(img_embedding_size, hidden_size), dim=None)
+    w_i = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
+    w_qc = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
     w_prev = weight_norm(nn.Linear(hidden_size, hidden_size), dim=None)
 
     combo_ctx_gate = SELayer(1,128)
