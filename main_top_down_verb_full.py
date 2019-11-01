@@ -232,6 +232,7 @@ def main():
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
             {'params': model.feat_combiner.parameters()},
+            {'params': model.lstm_proj2.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

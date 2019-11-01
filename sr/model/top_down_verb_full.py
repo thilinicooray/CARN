@@ -44,7 +44,7 @@ class vgg16_modified(nn.Module):
 class Top_Down_Baseline(nn.Module):
     def __init__(self, covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier,
                  resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
-                 v_net, classifier, Dropout_C, feat_combiner):
+                 v_net, classifier, Dropout_C, feat_combiner, lstm_proj2):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
         self.conv_exp = conv_exp
@@ -62,6 +62,7 @@ class Top_Down_Baseline(nn.Module):
         self.Dropout_C = Dropout_C
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.feat_combiner = feat_combiner
+        self.lstm_proj2 = lstm_proj2
 
     def forward(self, v_org, agent_feat, place_feat):
 
@@ -108,7 +109,13 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = self.feat_combiner(mfb_l2, ext_ctx)
+        out = mfb_l2
+
+        tot_verb = torch.cat([mfb_l2.unsqueeze(1), ext_ctx.unsqueeze(1)], 1)
+        self.feat_combiner.flatten_parameters()
+        lstm_out, (h, _) = self.feat_combiner(tot_verb)
+        q_emb_up = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
+        out = self.Dropout_C(self.lstm_proj2(q_emb_up))
 
         logits = self.classifier(out)
 
@@ -143,7 +150,10 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     resize_img_flat = nn.Conv2d(img_embedding_size, hidden_size, [1, 1], 1, 0, bias=False)
     resize_img_grid = SELayer(img_embedding_size*2)
 
-    feat_combiner = nn.GRUCell(hidden_size, hidden_size, bias=True)
+    #feat_combiner = nn.GRUCell(hidden_size, hidden_size, bias=True)
+    feat_combiner = nn.LSTM(hidden_size, hidden_size,
+                          batch_first=True, bidirectional=True)
+    lstm_proj2 = nn.Linear(hidden_size * 2, hidden_size)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
@@ -151,6 +161,6 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     Dropout_C = nn.Dropout(0.3)
 
     return Top_Down_Baseline(covnet, conv_exp, agent_emb, place_emb, agent_classifier, place_classifier, resize_img_flat, resize_img_grid, query_composer, v_att, q_net,
-                             v_net, classifier, Dropout_C, feat_combiner)
+                             v_net, classifier, Dropout_C, feat_combiner, lstm_proj2)
 
 
