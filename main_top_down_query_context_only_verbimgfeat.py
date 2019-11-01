@@ -208,7 +208,6 @@ def main():
         utils.set_trainable(model, True)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
-            {'params': model.img_feat_combiner.parameters()},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
             {'params': model.query_composer.parameters()},
@@ -217,12 +216,8 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
-            {'params': model.w_i.parameters()},
-            {'params': model.w_q.parameters()},
-            {'params': model.w_qc.parameters()},
-            {'params': model.w_prev.parameters()},
-            {'params': model.combo_ctx_gate.parameters()},
-            {'params': model.final_att_proj.parameters()},
+            {'params': model.iteration_combiner.parameters()},
+            {'params': model.lstm_projector.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
