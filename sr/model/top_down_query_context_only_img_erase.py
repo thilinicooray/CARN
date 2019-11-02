@@ -173,7 +173,7 @@ class Top_Down_Baseline(nn.Module):
             iteration_hidden = h.permute(1, 0, 2).contiguous().view(batch_size*self.encoder.max_role_count, -1)
             #iteration_hidden = torch.sum(lstm_out.permute(1, 0, 2),1)
             final = self.Dropout_C(self.lstm_projector(iteration_hidden))'''
-            gate = torch.sigmoid(self.iteration_combiner * out + self.lstm_projector*ans_list[:,0])
+            gate = torch.sigmoid(self.iteration_combiner (out) + self.lstm_projector(ans_list[:,0]))
             final = gate * ans_list[:,0] + (1-gate) * torch.tanh(out + ans_list[:,0])
 
 
