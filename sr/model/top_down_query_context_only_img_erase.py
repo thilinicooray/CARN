@@ -166,13 +166,16 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            ans_list = torch.cat((ans_list.clone(), out.unsqueeze(1)), 1)
+            '''ans_list = torch.cat((ans_list.clone(), out.unsqueeze(1)), 1)
 
             self.iteration_combiner.flatten_parameters()
             lstm_out, (h, _) = self.iteration_combiner(ans_list)
             iteration_hidden = h.permute(1, 0, 2).contiguous().view(batch_size*self.encoder.max_role_count, -1)
             #iteration_hidden = torch.sum(lstm_out.permute(1, 0, 2),1)
-            final = self.Dropout_C(self.lstm_projector(iteration_hidden))
+            final = self.Dropout_C(self.lstm_projector(iteration_hidden))'''
+            gate = torch.sigmoid(self.iteration_combiner * out + self.lstm_projector*ans_list[:,0])
+            final = gate * ans_list[:,0] + (1-gate) * torch.tanh(out + ans_list[:,0])
+
 
         logits = self.classifier(final)
 
@@ -277,9 +280,12 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
-    iteration_combiner = nn.LSTM(hidden_size, hidden_size//2,
+    '''iteration_combiner = nn.LSTM(hidden_size, hidden_size//2,
                      batch_first=True, bidirectional=True)
-    lstm_projector = nn.Linear(hidden_size, hidden_size)
+    lstm_projector = nn.Linear(hidden_size, hidden_size)'''
+
+    w_new = nn.Linear(hidden_size, hidden_size)
+    w_prev = nn.Linear(hidden_size, hidden_size)
 
     verb_regen = FCNet([hidden_size*6, hidden_size ])
 
@@ -291,6 +297,6 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C,
-                             classifier, encoder, iteration_combiner, lstm_projector, verb_regen, verb_classifier)
+                             classifier, encoder, w_new, w_prev, verb_regen, verb_classifier)
 
 
