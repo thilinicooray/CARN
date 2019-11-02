@@ -179,16 +179,15 @@ class Top_Down_Baseline(nn.Module):
 
         logits = self.classifier(final)
 
-        '''role_group = final.contiguous().view(batch_size, self.encoder.max_role_count, -1)
+        role_group = final.contiguous().view(batch_size, self.encoder.max_role_count, -1)
         role_group = role_group * role_oh_encoding.unsqueeze(-1)
         verb_hidden_rep = self.verb_regen(role_group.contiguous().view(batch_size, -1))
-        verb_pred = self.verb_classifier(verb_hidden_rep)'''
 
         verb_pred = self.verb_classifier(img_feat)
 
         role_label_pred = logits.contiguous().view(batch_size, self.encoder.max_role_count, -1)
 
-        return role_label_pred, verb_pred
+        return role_label_pred, verb_pred, verb_hidden_rep
 
     '''def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
@@ -206,11 +205,12 @@ class Top_Down_Baseline(nn.Module):
         final_loss = loss/batch_size
         return final_loss'''
 
-    def calculate_loss(self, gt_verbs, verb_pred, role_label_pred, gt_labels):
+    def calculate_loss(self, gt_verbs, verb_pred, role_label_pred, gt_labels, img_feat, verb_hidden_rep):
 
         batch_size = role_label_pred.size()[0]
         criterion = nn.CrossEntropyLoss(ignore_index=self.encoder.get_num_labels())
         verb_criterion = nn.CrossEntropyLoss()
+        l2_criterion = nn.MSELoss()
 
         gt_label_turned = gt_labels.transpose(1,2).contiguous().view(batch_size* self.encoder.max_role_count*3, -1)
 
@@ -223,7 +223,9 @@ class Top_Down_Baseline(nn.Module):
 
         verb_loss = verb_criterion(verb_pred, gt_verbs.squeeze()) * 3
 
-        return loss + verb_loss
+        verb_regen_loss = l2_criterion(verb_hidden_rep, verb_hidden_rep) * 3
+
+        return loss + verb_loss + verb_regen_loss
 
 
 class MultiHeadedAttention(nn.Module):
@@ -298,10 +300,9 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
         hidden_size, 2 * hidden_size, n_verbs, 0.5)'''
 
     verb_classifier = nn.Sequential(
-        nn.Linear(hidden_size, hidden_size*2),
         nn.ReLU(),
         nn.Dropout(0.5),
-        nn.Linear(hidden_size*2, n_verbs)
+        nn.Linear(hidden_size, n_verbs)
     )
 
 

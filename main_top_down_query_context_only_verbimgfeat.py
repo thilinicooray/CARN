@@ -6,7 +6,7 @@ from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 from sr.model import top_down_query_context_only_img_erase
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -41,8 +41,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict, verb_pred = pmodel(img, img_feat, verb)
-            loss = model.calculate_loss(verb, verb_pred, role_predict, labels)
+            role_predict, verb_pred, verb_hidden_rep = pmodel(img, img_feat, verb)
+            loss = model.calculate_loss(verb, verb_pred, role_predict, labels, img_feat, verb_hidden_rep)
 
             loss.backward()
 
@@ -117,7 +117,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict, verb_pred = model(img, img_feat, verb)
+            role_predict, verb_pred, verb_hidden_rep = model(img, img_feat, verb)
 
             if write_to_file:
                 top1.add_point_both(verb_pred, verb, role_predict, labels)
@@ -127,7 +127,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 top5.add_point_both(verb_pred, verb, role_predict, labels)
 
             del role_predict, img, verb, labels
-            #break
+            break
 
     return top1, top5, 0
 
