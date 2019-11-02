@@ -293,7 +293,9 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
         hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
 
     verb_classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
+        hidden_size, 2 * hidden_size, n_verbs, 0.5)
+
+    
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C,
