@@ -137,7 +137,7 @@ class Top_Down_Baseline(nn.Module):
         q_list.append(q_repr)
         ans_list = out.unsqueeze(1)
 
-        for i in range(3):
+        for i in range(1):
 
             cur_group = out.contiguous().view(batch_size, self.encoder.max_role_count, -1)
 
@@ -268,9 +268,9 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
-    iteration_combiner = nn.LSTM(hidden_size, hidden_size,
+    iteration_combiner = nn.LSTM(hidden_size, hidden_size//2, 
                      batch_first=True, bidirectional=True)
-    lstm_projector = nn.Linear(hidden_size * 2, hidden_size)
+    lstm_projector = nn.Linear(hidden_size, hidden_size)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
