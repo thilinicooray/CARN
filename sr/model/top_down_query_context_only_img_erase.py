@@ -167,7 +167,7 @@ class Top_Down_Baseline(nn.Module):
             ans_list = torch.cat((ans_list.clone(), out.unsqueeze(1)), 1)
 
             self.iteration_combiner.flatten_parameters()
-            lstm_out, (h, _) = self.iteration_combiner(ans_list)
+            lstm_out, h = self.iteration_combiner(ans_list)
             #iteration_hidden = h.permute(1, 0, 2).contiguous().view(batch_size*self.encoder.max_role_count, -1)
             iteration_hidden = torch.sum(lstm_out,1)
             final = self.Dropout_C(self.lstm_projector(iteration_hidden))
@@ -268,7 +268,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
-    iteration_combiner = nn.LSTM(hidden_size, hidden_size,
+    iteration_combiner = nn.GRU(hidden_size, hidden_size,
                      batch_first=True, bidirectional=True)
     lstm_projector = nn.Linear(hidden_size * 2, hidden_size)
 
