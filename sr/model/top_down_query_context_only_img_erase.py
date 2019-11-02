@@ -298,9 +298,10 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
         hidden_size, 2 * hidden_size, n_verbs, 0.5)'''
 
     verb_classifier = nn.Sequential(
+        nn.Linear(hidden_size, hidden_size*2),
         nn.ReLU(),
         nn.Dropout(0.5),
-        nn.Linear(hidden_size, n_verbs)
+        nn.Linear(hidden_size*2, n_verbs)
     )
 
 
