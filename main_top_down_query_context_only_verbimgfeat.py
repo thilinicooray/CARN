@@ -41,8 +41,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = pmodel(img, img_feat, verb)
-            loss = model.calculate_loss(verb, role_predict, labels)
+            role_predict, verb_pred = pmodel(img, img_feat, verb)
+            loss = model.calculate_loss(verb, verb_pred, role_predict, labels)
 
             loss.backward()
 
@@ -218,6 +218,8 @@ def main():
             {'params': model.neighbour_attention.parameters()},
             {'params': model.iteration_combiner.parameters()},
             {'params': model.lstm_projector.parameters()},
+            {'params': model.verb_regen.parameters()},
+            {'params': model.verb_classifier.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

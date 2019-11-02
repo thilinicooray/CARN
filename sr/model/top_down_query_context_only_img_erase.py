@@ -57,7 +57,7 @@ class SELayer(nn.Module):
 class Top_Down_Baseline(nn.Module):
     def __init__(self, covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                  v_net, neighbour_attention, updated_query_composer, Dropout_C,
-                 classifier, encoder, iteration_combiner, lstm_projector):
+                 classifier, encoder, iteration_combiner, lstm_projector, verb_regen, verb_classifier):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
         self.role_emb = role_emb
@@ -73,6 +73,8 @@ class Top_Down_Baseline(nn.Module):
         self.encoder = encoder
         self.iteration_combiner = iteration_combiner
         self.lstm_projector = lstm_projector
+        self.verb_regen = verb_regen
+        self.verb_classifier = verb_classifier
 
     def forward(self, v_org, img_feat, gt_verb):
 
@@ -172,12 +174,16 @@ class Top_Down_Baseline(nn.Module):
             #iteration_hidden = torch.sum(lstm_out.permute(1, 0, 2),1)
             final = self.Dropout_C(self.lstm_projector(iteration_hidden))
 
-
         logits = self.classifier(final)
+
+        role_group = final.contiguous().view(batch_size, self.encoder.max_role_count, -1)
+        role_group = role_group * role_oh_encoding.unsqueeze(-1)
+        verb_hidden_rep = self.verb_regen(role_group.contiguous().view(batch_size, -1))
+        verb_pred = self.verb_classifier(verb_hidden_rep)
 
         role_label_pred = logits.contiguous().view(batch_size, self.encoder.max_role_count, -1)
 
-        return role_label_pred
+        return role_label_pred, verb_pred
 
     '''def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
@@ -195,10 +201,11 @@ class Top_Down_Baseline(nn.Module):
         final_loss = loss/batch_size
         return final_loss'''
 
-    def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
+    def calculate_loss(self, gt_verbs, verb_pred, role_label_pred, gt_labels):
 
         batch_size = role_label_pred.size()[0]
         criterion = nn.CrossEntropyLoss(ignore_index=self.encoder.get_num_labels())
+        verb_criterion = nn.CrossEntropyLoss()
 
         gt_label_turned = gt_labels.transpose(1,2).contiguous().view(batch_size* self.encoder.max_role_count*3, -1)
 
@@ -209,7 +216,9 @@ class Top_Down_Baseline(nn.Module):
 
         loss = criterion(role_label_pred, gt_label_turned.squeeze(1)) * 3
 
-        return loss
+        verb_loss = verb_criterion(verb_pred, gt_verbs.squeeze()) * 3
+
+        return loss + verb_loss
 
 
 class MultiHeadedAttention(nn.Module):
@@ -268,15 +277,20 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
-    iteration_combiner = nn.LSTM(hidden_size, hidden_size//2, 
+    iteration_combiner = nn.LSTM(hidden_size, hidden_size//2,
                      batch_first=True, bidirectional=True)
     lstm_projector = nn.Linear(hidden_size, hidden_size)
+
+    verb_regen = FCNet([hidden_size*6, hidden_size ])
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
 
+    verb_classifier = SimpleClassifier(
+        hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
+
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C,
-                             classifier, encoder, iteration_combiner, lstm_projector)
+                             classifier, encoder, iteration_combiner, lstm_projector, verb_regen, verb_classifier)
 
 
