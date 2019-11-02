@@ -6,7 +6,7 @@ from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 from sr.model import top_down_query_context_only_img_erase
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -53,13 +53,13 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
             train_loss += loss.item()
 
-            top1.add_point_noun(verb, role_predict, labels)
-            top5.add_point_noun(verb, role_predict, labels)
+            top1.add_point_both(verb_pred, verb, role_predict, labels)
+            top5.add_point_both(verb_pred, verb, role_predict, labels)
 
 
             if total_steps % print_freq == 0:
-                top1_a = top1.get_average_results_nouns()
-                top5_a = top5.get_average_results_nouns()
+                top1_a = top1.get_average_results_both()
+                top5_a = top5.get_average_results_both()
                 print ("{},{},{}, {} , {}, loss = {:.2f}, avg loss = {:.2f}"
                        .format(total_steps-1,epoch,i, utils.format_dict(top1_a, "{:.2f}", "1-"),
                                utils.format_dict(top5_a,"{:.2f}","5-"), loss.item(),
@@ -70,8 +70,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top1, top5, val_loss = eval(model, dev_loader, encoder, gpu_mode)
                 model.train()
 
-                top1_avg = top1.get_average_results_nouns()
-                top5_avg = top5.get_average_results_nouns()
+                top1_avg = top1.get_average_results_both()
+                top5_avg = top5.get_average_results_both()
 
                 avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
                             top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
@@ -120,14 +120,14 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             role_predict, verb_pred = model(img, img_feat, verb)
 
             if write_to_file:
-                top1.add_point_noun_log(img_id, verb, role_predict, labels)
-                top5.add_point_noun_log(img_id, verb, role_predict, labels)
+                top1.add_point_both(verb_pred, verb, role_predict, labels)
+                top5.add_point_noun_log(verb_pred, verb, role_predict, labels)
             else:
-                top1.add_point_noun(verb, role_predict, labels)
-                top5.add_point_noun(verb, role_predict, labels)
+                top1.add_point_both(verb_pred, verb, role_predict, labels)
+                top5.add_point_both(verb_pred, verb, role_predict, labels)
 
             del role_predict, img, verb, labels
-            #break
+            break
 
     return top1, top5, 0
 

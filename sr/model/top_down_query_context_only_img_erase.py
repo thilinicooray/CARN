@@ -179,10 +179,12 @@ class Top_Down_Baseline(nn.Module):
 
         logits = self.classifier(final)
 
-        role_group = final.contiguous().view(batch_size, self.encoder.max_role_count, -1)
+        '''role_group = final.contiguous().view(batch_size, self.encoder.max_role_count, -1)
         role_group = role_group * role_oh_encoding.unsqueeze(-1)
         verb_hidden_rep = self.verb_regen(role_group.contiguous().view(batch_size, -1))
-        verb_pred = self.verb_classifier(verb_hidden_rep)
+        verb_pred = self.verb_classifier(verb_hidden_rep)'''
+
+        verb_pred = self.verb_classifier(img_feat)
 
         role_label_pred = logits.contiguous().view(batch_size, self.encoder.max_role_count, -1)
 
@@ -292,10 +294,15 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes+1, 0.5)
 
-    verb_classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, n_verbs, 0.5)
+    '''verb_classifier = SimpleClassifier(
+        hidden_size, 2 * hidden_size, n_verbs, 0.5)'''
 
-    
+    verb_classifier = nn.Sequential(
+        nn.ReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(hidden_size, n_verbs)
+    )
+
 
     return Top_Down_Baseline(covnet, role_emb, verb_emb, query_composer, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, Dropout_C,

@@ -246,7 +246,7 @@ class imsitu_loader_verbimgfeat_4_role(data.Dataset):
         self.verb_img_id2idx = cPickle.load(
             open(os.path.join(dataroot, 'verb_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
         print('loading verb grid img features from h5 file')
-        verb_flat_h5_path = os.path.join(dataroot, 'verb_imsitu_%s_grid.hdf5' % split)
+        verb_flat_h5_path = os.path.join(dataroot, 'verb_imsitu_%s_flat.hdf5' % split)
         with h5py.File(verb_flat_h5_path, 'r') as hf:
             self.verb_features = np.array(hf.get('image_features'))
 
