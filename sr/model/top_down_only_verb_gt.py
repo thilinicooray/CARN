@@ -61,8 +61,8 @@ class Top_Down_Baseline(nn.Module):
         #get agent and place idx to form the query
         #gold has 3 labels
         frame_idx = np.random.randint(3, size=1)
-        agent_idx = agent_labels[:,frame_idx,:].squeeze()
-        place_idx = place_labels[:,frame_idx,:].squeeze()
+        agent_idx = agent_labels[:,frame_idx].squeeze()
+        place_idx = place_labels[:,frame_idx].squeeze()
         agent_embd = self.agent_emb(agent_idx)
         place_embd = self.place_emb(place_idx)
 
