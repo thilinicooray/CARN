@@ -264,3 +264,27 @@ class imsitu_loader_verbimgfeat_4_role(data.Dataset):
 
     def __len__(self):
         return len(self.annotations)
+
+class imsitu_loader_agentplace_4_verb(data.Dataset):
+    def __init__(self, img_dir, annotation_file, encoder, split, transform=None, dataroot='data'):
+        self.img_dir = img_dir
+        self.annotations = annotation_file
+        self.ids = list(self.annotations.keys())
+        self.encoder = encoder
+        self.transform = transform
+
+    def __getitem__(self, index):
+        _id = self.ids[index]
+        ann = self.annotations[_id]
+        img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
+        img = self.transform(img)
+
+        verb = self.encoder.encode_verb(ann)
+        agents = self.encoder.encode_agent(ann)
+        places = self.encoder.encode_place(ann)
+
+
+        return _id, img, verb, agents, places
+
+    def __len__(self):
+        return len(self.annotations)
