@@ -35,7 +35,7 @@ class vgg16_modified(nn.Module):
 
         return out
 
-    def calculate_loss(self, role_label_pred, gt_labels):
+    '''def calculate_loss(self, role_label_pred, gt_labels):
 
         batch_size = role_label_pred.size()[0]
 
@@ -45,7 +45,23 @@ class vgg16_modified(nn.Module):
                 loss += cross_entropy_loss(role_label_pred[i], gt_labels[i,index], self.num_ans_classes)
 
         final_loss = loss/batch_size
-        return final_loss
+        return final_loss'''
+
+    def calculate_loss(self, role_label_pred, gt_labels):
+
+        batch_size = role_label_pred.size()[0]
+        criterion = nn.CrossEntropyLoss()
+
+        gt_label_turned = gt_labels.contiguous().view(batch_size*3, -1)
+
+        role_label_pred = role_label_pred.contiguous().view(batch_size -1)
+        role_label_pred = role_label_pred.expand(3, role_label_pred.size(0), role_label_pred.size(1))
+        role_label_pred = role_label_pred.transpose(0,1)
+        role_label_pred = role_label_pred.contiguous().view(-1, role_label_pred.size(-1))
+
+        loss = criterion(role_label_pred, gt_label_turned.squeeze(1)) * 3
+
+        return loss
 
     def calculate_verb_loss(self, verb_pred, gt_verbs):
 
@@ -63,7 +79,7 @@ class vgg16_modified(nn.Module):
 
 def build_single_role_classifier(num_ans_classes):
 
-    covnet = vgg16_modified(num_ans_classes)
+    covnet = vgg16_modified(num_ans_classes+1)
 
     return covnet
 
