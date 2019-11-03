@@ -54,7 +54,7 @@ class vgg16_modified(nn.Module):
 
         gt_label_turned = gt_labels.contiguous().view(batch_size*3, -1)
 
-        role_label_pred = role_label_pred.contiguous().view(batch_size -1)
+        role_label_pred = role_label_pred.contiguous().view(batch_size, -1)
         role_label_pred = role_label_pred.expand(3, role_label_pred.size(0), role_label_pred.size(1))
         role_label_pred = role_label_pred.transpose(0,1)
         role_label_pred = role_label_pred.contiguous().view(-1, role_label_pred.size(-1))
