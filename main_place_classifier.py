@@ -197,7 +197,7 @@ def main():
         model_name = 'train_full'
         utils.set_trainable(model, True)
         optimizer = torch.optim.Adamax([
-            {'params': model.vgg_features.parameters()},
+            {'params': model.vgg_features.parameters(), 'lr': 5e-5},
             {'params': model.classifier.parameters()},
         ], lr=1e-3)
 
