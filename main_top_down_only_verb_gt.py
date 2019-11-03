@@ -6,7 +6,7 @@ from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 from sr.model import top_down_only_verb_gt
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -125,7 +125,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             top5.add_point_verb_only_eval(img_id, verb_predict, verb)
 
             del verb_predict, img, agent, place, verb
-            break
+            #break
 
     return top1, top5, 0
 
