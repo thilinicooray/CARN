@@ -79,7 +79,7 @@ class vgg16_modified(nn.Module):
 
 def build_single_role_classifier(num_ans_classes):
 
-    covnet = vgg16_modified(num_ans_classes+1)
+    covnet = vgg16_modified(num_ans_classes)
 
     return covnet
 

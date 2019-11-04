@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
-from sr.model import top_down_verb_pred_agentplace, top_down_baseline
+from sr.model import top_down_verb_pred_agentplace, top_down_baseline, single_role_vgg_classifier
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -154,6 +154,7 @@ def main():
     parser.add_argument('--num_workers', type=int, default=3)
 
     parser.add_argument('--role_module', type=str, default='', help='Pretrained role module')
+    parser.add_argument('--cnn_verb_module', type=str, default='', help='Pretrained cnn verb module')
 
     args = parser.parse_args()
 
@@ -175,9 +176,12 @@ def main():
     constructor = 'build_top_down_baseline'
     role_module = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
+    constructor = 'build_single_role_classifier'
+    cnn_verb_module = getattr(single_role_vgg_classifier, constructor)(len(encoder.verb_list))
+
     #building current model
     constructor = 'build_%s' % args.model
-    model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), role_module)
+    model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), role_module, cnn_verb_module)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
@@ -213,6 +217,8 @@ def main():
         utils.set_trainable(model, True)
         utils.load_net(args.role_module, [model.role_module])
         utils.set_trainable(model.role_module, False)
+        utils.load_net(args.cnn_verb_module, [model.cnn_verb_module])
+        utils.set_trainable(model.cnn_verb_module, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.label_emb.parameters()},

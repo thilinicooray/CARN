@@ -96,7 +96,7 @@ class Top_Down_Baseline(nn.Module):
 
         return role_label_pred
 
-    def forward_agentplace_noverb(self, v_org):
+    def forward_agentplace_noverb(self, v_org, pred_verb):
 
         max_role_count = 2
 
@@ -122,7 +122,8 @@ class Top_Down_Baseline(nn.Module):
 
         #verb_embd = torch.sum(self.verb_emb.weight, 0)
         #verb_embd = verb_embd.expand(batch_size, verb_embd.size(-1))
-        verb_embd = torch.zeros(batch_size, 300).cuda()
+        #verb_embd = torch.zeros(batch_size, 300).cuda()
+        verb_embd = self.verb_emb(pred_verb)
 
         role_embd = self.role_emb(role_idx)
 
