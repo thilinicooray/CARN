@@ -150,7 +150,6 @@ def main():
     parser.add_argument('--num_workers', type=int, default=3)
 
     parser.add_argument('--role_module', type=str, default='', help='Pretrained role module')
-    parser.add_argument('--cnn_verb_module', type=str, default='', help='Pretrained cnn verb module')
 
     args = parser.parse_args()
 
