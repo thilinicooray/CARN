@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.weight_norm import weight_norm
+import numpy as np
 
 from ..lib.attention import Attention
 from ..lib.classifier import SimpleClassifier
@@ -44,8 +45,21 @@ class Top_Down_Baseline(nn.Module):
     def forward(self, v_org, agent_feat, place_feat):
 
         #get agent and place idx to form the query
-        agent_idx = torch.max(self.agent_classifier(agent_feat),-1)[1]
-        place_idx = torch.max(self.place_classifier(place_feat),-1)[1]
+
+        if self.training:
+            sorted_agent = torch.sort(self.agent_classifier(agent_feat), -1, True)[1]
+            sorted_place = torch.sort(self.place_classifier(place_feat), -1, True)[1]
+
+            agent_labels = sorted_agent[:,:3]
+            place_labels = sorted_place[:,:3]
+
+            frame_idx = np.random.randint(3, size=1)
+            agent_idx = agent_labels[:,frame_idx].squeeze()
+            place_idx = place_labels[:,frame_idx].squeeze()
+        else:
+            agent_idx = torch.max(self.agent_classifier(agent_feat),-1)[1]
+            place_idx = torch.max(self.place_classifier(place_feat),-1)[1]
+
         agent_embd = self.agent_emb(agent_idx)
         place_embd = self.place_emb(place_idx)
 
