@@ -209,8 +209,6 @@ def main():
         utils.set_trainable(model, True)
         utils.load_net(args.role_module, [model.role_module])
         utils.set_trainable(model.role_module, False)
-        utils.load_net(args.cnn_verb_module, [model.cnn_verb_module])
-        utils.set_trainable(model.cnn_verb_module, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.label_emb.parameters()},
