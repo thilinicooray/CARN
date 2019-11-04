@@ -43,7 +43,7 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
 
     h_grid = h5py.File(data_file_grid[split], 'w')
     img_features_grid = h_grid.create_dataset(
-        'image_features', (dataset_size), 'f')
+        'image_features', (dataset_size, 1), 'f')
 
     counter = 0
     indices = {}
