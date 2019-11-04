@@ -153,7 +153,7 @@ class Top_Down_Baseline(nn.Module):
         logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), max_role_count, -1)
-        role_label_rep = out.contiguous().view(v.size(0), max_role_count, -1)
+        role_label_rep = v_repr.contiguous().view(v.size(0), max_role_count, -1)
 
         return role_label_pred, role_label_rep
 
