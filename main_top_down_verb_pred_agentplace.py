@@ -173,11 +173,11 @@ def main():
 
     #loading classifier part from pretrained agent and place models
     constructor = 'build_top_down_baseline'
-    role_module = getattr(top_down_baseline, constructor)(len(encoder.agent_label_list))
+    role_module = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
     #building current model
     constructor = 'build_%s' % args.model
-    model = getattr(top_down_verb_pred_agentplace, constructor)(len(encoder.label_list),  len(encoder.verb_list), role_module)
+    model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), role_module)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
