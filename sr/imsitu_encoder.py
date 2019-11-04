@@ -223,7 +223,7 @@ class imsitu_encoder():
 
     def get_agent_place_ids_batch(self, batch_size):
         role_batch_list = []
-        agent_place = [self.role_list.index('agent'),self.role_list.index('place')]
+        agent_place = torch.tensor([self.role_list.index('agent'),self.role_list.index('place')])
         for i in range(batch_size):
             role_batch_list.append(agent_place)
 
