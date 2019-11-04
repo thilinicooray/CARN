@@ -46,7 +46,7 @@ class Top_Down_Baseline(nn.Module):
 
         batch_size = v.size(0)
 
-        role_idx = self.encoder.get_role_ids_batch(gt_verb)
+        role_idx = self.encoder.get_role_ids_batch_agentgroup(gt_verb)
 
         if torch.cuda.is_available():
             role_idx = role_idx.to(torch.device('cuda'))

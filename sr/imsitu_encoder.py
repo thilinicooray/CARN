@@ -221,6 +221,41 @@ class imsitu_encoder():
 
         return torch.stack(role_batch_list,0)
 
+    def get_role_ids_agentgroup(self, verb_id):
+        current_role_list = self.verb2_role_dict[self.verb_list[verb_id]]
+        agent_role = None
+        if 'agent' in current_role_list:
+            agent_role = 'agent'
+        else:
+            for role1 in current_role_list:
+                if role1 in self.agent_roles[1:]:
+                    agent_role = role1
+                    break
+
+        role_verb = []
+        for role in current_role_list:
+            if role == agent_role:
+                role_id = self.role_list.index('agent')
+            else:
+                role_id = self.role_list.index(role)
+            role_verb.append(role_id)
+
+        padding_count = self.max_role_count - len(current_role_list)
+
+        for i in range(padding_count):
+            role_verb.append(len(self.role_list))
+
+        return self.verb2role_list[verb_id]
+
+    def get_role_ids_batch_agentgroup(self, verbs):
+        role_batch_list = []
+
+        for verb_id in verbs:
+            role_ids = self.get_role_ids_agentgroup(verb_id)
+            role_batch_list.append(role_ids)
+
+        return torch.stack(role_batch_list,0)
+
 
     def get_label_ids(self, verb, frames):
         all_frame_id_list = []
