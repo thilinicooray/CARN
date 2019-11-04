@@ -40,6 +40,7 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.Dropout_C = Dropout_C
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.Dropout_extctx= nn.Dropout(0.5)
 
     def forward(self, v_org, verb_pred):
 
@@ -79,7 +80,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2 + ext_ctx
+        out = mfb_l2 + self.Dropout_extctx(ext_ctx)
 
         logits = self.classifier(out)
 
