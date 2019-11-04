@@ -221,6 +221,14 @@ class imsitu_encoder():
 
         return torch.stack(role_batch_list,0)
 
+    def get_agent_place_ids_batch(self, batch_size):
+        role_batch_list = []
+        agent_place = [self.role_list.index('agent'),self.role_list.index('place')]
+        for i in range(batch_size):
+            role_batch_list.append(agent_place)
+
+        return torch.stack(role_batch_list,0)
+
     def get_role_ids_agentgroup(self, verb_id):
         current_role_list = self.verb2_role_dict[self.verb_list[verb_id]]
         agent_role = None

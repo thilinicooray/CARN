@@ -105,7 +105,7 @@ def build_top_down_baseline_verb(n_agents, n_places, agent_classifier, place_cla
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    Dropout_C = nn.Dropout(0.3)
+    Dropout_C = nn.Dropout(0.1)
 
     return Top_Down_Baseline(covnet, agent_emb, place_emb, agent_classifier, place_classifier, query_composer, v_att, q_net,
                              v_net, classifier, Dropout_C)

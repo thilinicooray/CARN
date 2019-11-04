@@ -26,48 +26,40 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, covnet, agent_emb, place_emb, agent_classifier, place_classifier, query_composer, v_att, q_net,
-                 v_net, classifier, Dropout_C):
+    def __init__(self, covnet, role_module, label_emb, query_composer, v_att, q_net,
+                 v_net, resize_img_flat, classifier, Dropout_C):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
-        self.agent_emb = agent_emb
-        self.place_emb = place_emb
-        self.agent_classifier = agent_classifier
-        self.place_classifier = place_classifier
+        self.role_module = role_module
+        self.label_emb = label_emb
         self.query_composer = query_composer
         self.v_att = v_att
         self.q_net = q_net
         self.v_net = v_net
+        self.resize_img_flat = resize_img_flat
         self.classifier = classifier
         self.Dropout_C = Dropout_C
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
 
-    def forward(self, v_org, agent_feat, place_feat):
+    def forward(self, v_org):
 
         #get agent and place idx to form the query
 
-        if self.training:
-            sorted_agent = torch.sort(self.agent_classifier(agent_feat), -1, True)[1]
-            sorted_place = torch.sort(self.place_classifier(place_feat), -1, True)[1]
+        agent_place_pred, agent_place_rep = self.role_module.forward_agentplace_noverb(v_org)
 
-            agent_labels = sorted_agent[:,:3]
-            place_labels = sorted_place[:,:3]
+        role_rep_combo = torch.sum(agent_place_rep, 1)
 
-            frame_idx = np.random.randint(3, size=1)
-            agent_idx = agent_labels[:,frame_idx].squeeze()
-            place_idx = place_labels[:,frame_idx].squeeze()
-        else:
-            agent_idx = torch.max(self.agent_classifier(agent_feat),-1)[1]
-            place_idx = torch.max(self.place_classifier(place_feat),-1)[1]
-
-        agent_embd = self.agent_emb(agent_idx)
-        place_embd = self.place_emb(place_idx)
-
+        label_idx = torch.max(agent_place_pred,-1)[1].squeeze()
+        agent_embd = self.label_emb(label_idx[:,0])
+        place_embd = self.label_emb(label_idx[:,1])
         concat_query = torch.cat([ agent_embd, place_embd], -1)
         q_emb = self.Dropout_C(self.query_composer(concat_query))
 
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
+        img_feat_flat = self.avgpool(img_features)
+        img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
+        ext_ctx = img_feat_flat * role_rep_combo
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
@@ -86,7 +78,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2
+        out = mfb_l2 + ext_ctx
 
         logits = self.classifier(out)
 
@@ -100,28 +92,26 @@ class Top_Down_Baseline(nn.Module):
 
         return loss
 
-def build_top_down_baseline_verb(agent_emb, place_emb, agent_classifier, place_classifier, num_ans_classes):
+def build_top_down_baseline_verb(num_labels, num_ans_classes, role_module):
 
     hidden_size = 1024
     word_embedding_size = 300
     img_embedding_size = 512
 
     covnet = vgg16_modified()
-    agent_emb = agent_emb
-    place_emb = place_emb
-    agent_classifier = agent_classifier
-    place_classifier = place_classifier
+    role_module = role_module
+    label_emb = nn.Embedding(num_labels + 1, word_embedding_size, padding_idx=num_labels)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
     v_att = Attention(img_embedding_size, hidden_size, hidden_size)
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
-
+    resize_img_flat = nn.Linear(img_embedding_size, hidden_size)
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    Dropout_C = nn.Dropout(0.3)
+    Dropout_C = nn.Dropout(0.1)
 
-    return Top_Down_Baseline(covnet, agent_emb, place_emb, agent_classifier, place_classifier, query_composer, v_att, q_net,
-                             v_net, classifier, Dropout_C)
+    return Top_Down_Baseline(covnet, role_module, label_emb, query_composer, v_att, q_net,
+                             v_net, resize_img_flat, classifier, Dropout_C)
 
 

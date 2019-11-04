@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
-from sr.model import top_down_verb_pred_agentplace, single_role_vgg_classifier, top_down_only_verb_gt
+from sr.model import top_down_verb_pred_agentplace, top_down_baseline
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -41,7 +41,7 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 place_flat_features = torch.autograd.Variable(place_flat_features)
                 verb = torch.autograd.Variable(verb)
 
-            verb_predict = pmodel(img, agent_flat_features, place_flat_features)
+            verb_predict = pmodel(img)
             loss = model.calculate_verb_loss(verb_predict, verb)
 
             loss.backward()
@@ -119,7 +119,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 place_flat_features = torch.autograd.Variable(place_flat_features)
                 verb = torch.autograd.Variable(verb)
 
-            verb_predict = model(img, agent_flat_features, place_flat_features)
+            verb_predict = model(img)
 
             top1.add_point_verb_only_eval(img_id, verb_predict, verb)
             top5.add_point_verb_only_eval(img_id, verb_predict, verb)
@@ -153,9 +153,7 @@ def main():
     parser.add_argument('--clip_norm', type=float, default=0.25)
     parser.add_argument('--num_workers', type=int, default=3)
 
-    parser.add_argument('--agent_model', type=str, default='', help='Pretrained agent classifier')
-    parser.add_argument('--place_model', type=str, default='', help='Pretrained place classifier')
-    parser.add_argument('--gt_verb_model', type=str, default='', help='Pretrained verb model with GT queries classifier')
+    parser.add_argument('--role_module', type=str, default='', help='Pretrained role module')
 
     args = parser.parse_args()
 
@@ -174,23 +172,12 @@ def main():
     train_set = imsitu_loader.imsitu_loader_top_down_verb(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
     #loading classifier part from pretrained agent and place models
-    constructor = 'build_single_role_classifier'
-    agent_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.agent_label_list))
-    utils.load_net(args.agent_model, [agent_model])
-
-    place_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.place_label_list))
-    utils.load_net(args.place_model, [place_model])
-
-    #loading agent and place embeddings from gt trained verb model
-    constructor = 'build_top_down_baseline_verb'
-    gt_verb_model = getattr(top_down_only_verb_gt, constructor)(len(encoder.agent_label_list), len(encoder.place_label_list),
-                                                                len(encoder.verb_list))
-    utils.load_net(args.gt_verb_model, [gt_verb_model])
+    constructor = 'build_top_down_baseline'
+    role_module = getattr(top_down_baseline, constructor)(len(encoder.agent_label_list))
 
     #building current model
     constructor = 'build_%s' % args.model
-    model = getattr(top_down_verb_pred_agentplace, constructor)(gt_verb_model.agent_emb, gt_verb_model.place_emb,
-                                                     agent_model.classifier[-3:], place_model.classifier[-3:], len(encoder.verb_list))
+    model = getattr(top_down_verb_pred_agentplace, constructor)(len(encoder.label_list),  len(encoder.verb_list), role_module)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
@@ -224,16 +211,16 @@ def main():
         print('Training from the scratch.')
         model_name = 'train_full'
         utils.set_trainable(model, True)
-        utils.set_trainable(model.agent_classifier, False)
-        utils.set_trainable(model.place_classifier, False)
-        utils.set_trainable(model.agent_emb, False)
-        utils.set_trainable(model.place_emb, False)
+        utils.load_net(args.role_module, [model.role_module])
+        utils.set_trainable(model.role_module, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.label_emb.parameters()},
             {'params': model.query_composer.parameters()},
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
+            {'params': model.resize_img_flat.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

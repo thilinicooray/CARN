@@ -79,8 +79,6 @@ class Top_Down_Baseline(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        out = torch.mul(q_repr, v_repr)
-
         mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
@@ -97,6 +95,65 @@ class Top_Down_Baseline(nn.Module):
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         return role_label_pred
+
+    def forward_agentplace_noverb(self, v_org):
+
+        max_role_count = 2
+
+        img_features = self.convnet(v_org)
+        batch_size, n_channel, conv_h, conv_w = img_features.size()
+
+        img_org = img_features.view(batch_size, -1, conv_h* conv_w)
+        v = img_org.permute(0, 2, 1)
+
+        batch_size = v.size(0)
+
+        role_idx = self.encoder.get_agent_place_ids_batch(batch_size)
+
+        if torch.cuda.is_available():
+            role_idx = role_idx.to(torch.device('cuda'))
+
+        img = v
+
+        img = img.expand(max_role_count, img.size(0), img.size(1), img.size(2))
+
+        img = img.transpose(0,1)
+        img = img.contiguous().view(batch_size * max_role_count, -1, v.size(2))
+
+        verb_embd = torch.sum(self.verb_emb.weight, 0)
+        print(verb_embd.size())
+        verb_embd = verb_embd.expand(batch_size, verb_embd.size(-1))
+        role_embd = self.role_emb(role_idx)
+
+        verb_embed_expand = verb_embd.expand(max_role_count, verb_embd.size(0), verb_embd.size(1))
+        verb_embed_expand = verb_embed_expand.transpose(0,1)
+        concat_query = torch.cat([ verb_embed_expand, role_embd], -1)
+        role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
+        q_emb = self.query_composer(role_verb_embd)
+
+        att = self.v_att(img, q_emb)
+        v_emb = (att * img).sum(1)
+
+        v_repr = self.v_net(v_emb)
+        q_repr = self.q_net(q_emb)
+
+        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+
+        mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
+
+        mfb_iq_resh = mfb_iq_drop.view(batch_size* max_role_count, 1, -1, 1)   # N x 1 x 1000 x 5
+        mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
+        mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
+        mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
+        mfb_l2 = F.normalize(mfb_sign_sqrt)
+        out = mfb_l2
+
+        logits = self.classifier(out)
+
+        role_label_pred = logits.contiguous().view(v.size(0), max_role_count, -1)
+        role_label_rep = out.contiguous().view(v.size(0), max_role_count, -1)
+
+        return role_label_pred, role_label_rep
 
     def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
