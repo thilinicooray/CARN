@@ -120,8 +120,10 @@ class Top_Down_Baseline(nn.Module):
         img = img.transpose(0,1)
         img = img.contiguous().view(batch_size * max_role_count, -1, v.size(2))
 
-        verb_embd = torch.sum(self.verb_emb.weight, 0)
-        verb_embd = verb_embd.expand(batch_size, verb_embd.size(-1))
+        #verb_embd = torch.sum(self.verb_emb.weight, 0)
+        #verb_embd = verb_embd.expand(batch_size, verb_embd.size(-1))
+        verb_embd = torch.zeros(batch_size, 300).cuda()
+
         role_embd = self.role_emb(role_idx)
 
         verb_embed_expand = verb_embd.expand(max_role_count, verb_embd.size(0), verb_embd.size(1))
