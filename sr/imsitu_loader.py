@@ -158,37 +158,27 @@ class imsitu_loader_top_down_verb(data.Dataset):
         self.encoder = encoder
         self.transform = transform
 
-        #get agent flat features
-        self.agent_img_id2idx = cPickle.load(
-            open(os.path.join(dataroot, 'agent_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
-        print('loading agent flat img features from h5 file for split :', split)
-        agent_flat_h5_path = os.path.join(dataroot, 'agent_imsitu_%s_flat.hdf5' % split)
-        with h5py.File(agent_flat_h5_path, 'r') as hf:
-            self.agent_features = np.array(hf.get('image_features'))
+        #get verb grid features
+        self.verb_img_id2idx = cPickle.load(
+            open(os.path.join(dataroot, 'verb_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
+        print('loading verb grid img features from h5 file')
+        verb_grid_h5_path = os.path.join(dataroot, 'verb_imsitu_%s_grid.hdf5' % split)
+        with h5py.File(verb_grid_h5_path, 'r') as hf:
+            self.verb_features = np.array(hf.get('image_features'))
 
-        self.agent_flat_features = torch.from_numpy(self.agent_features)
-
-        #get place flat features
-        self.place_img_id2idx = cPickle.load(
-            open(os.path.join(dataroot, 'place_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
-        print('loading place flat img features from h5 file for split :', split)
-        place_flat_h5_path = os.path.join(dataroot, 'place_imsitu_%s_flat.hdf5' % split)
-        with h5py.File(place_flat_h5_path, 'r') as hf:
-            self.place_features = np.array(hf.get('image_features'))
-
-        self.place_flat_features = torch.from_numpy(self.place_features)
+        self.verb_pred_items = torch.from_numpy(self.verb_features)
 
     def __getitem__(self, index):
         _id = self.ids[index]
         ann = self.annotations[_id]
-        agent_flat_features = self.agent_flat_features[self.agent_img_id2idx[_id]]
-        place_flat_features = self.place_flat_features[self.place_img_id2idx[_id]]
 
         img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
         img = self.transform(img)
 
+        verb_pred = self.verb_pred_items[self.verb_img_id2idx[_id]]
+
         verb = self.encoder.encode_verb(ann)
-        return _id, img, agent_flat_features, place_flat_features, verb
+        return _id, img, verb_pred, verb
 
     def __len__(self):
         return len(self.annotations)

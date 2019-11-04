@@ -6,7 +6,7 @@ from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
 from sr.model import top_down_verb_pred_agentplace, top_down_baseline, single_role_vgg_classifier
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -27,21 +27,19 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
     for epoch in range(max_epoch):
 
-        for i, (img_id, img, agent_flat_features, place_flat_features, verb) in enumerate(train_loader):
+        for i, (img_id, img, verb_pred, verb) in enumerate(train_loader):
             total_steps += 1
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
-                agent_flat_features = torch.autograd.Variable(agent_flat_features.cuda())
-                place_flat_features = torch.autograd.Variable(place_flat_features.cuda())
+                verb_pred = torch.autograd.Variable(verb_pred.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
             else:
                 img = torch.autograd.Variable(img)
-                agent_flat_features = torch.autograd.Variable(agent_flat_features)
-                place_flat_features = torch.autograd.Variable(place_flat_features)
+                verb_pred = torch.autograd.Variable(verb_pred)
                 verb = torch.autograd.Variable(verb)
 
-            verb_predict = pmodel(img)
+            verb_predict = pmodel(img, verb_pred)
             loss = model.calculate_verb_loss(verb_predict, verb)
 
             loss.backward()
@@ -92,7 +90,7 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
                 top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
-            del verb_predict, loss, img, agent_flat_features, place_flat_features, verb
+            del verb_predict, loss, img, verb
         print('Epoch ', epoch, ' completed!')
         scheduler.step()
 
@@ -104,28 +102,26 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
-        for i, (img_id, img, agent_flat_features, place_flat_features, verb) in enumerate(dev_loader):
+        for i, (img_id, img, verb_pred, verb) in enumerate(dev_loader):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
-                agent_flat_features = torch.autograd.Variable(agent_flat_features.cuda())
-                place_flat_features = torch.autograd.Variable(place_flat_features.cuda())
+                verb_pred = torch.autograd.Variable(verb_pred.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
             else:
                 img = torch.autograd.Variable(img)
-                agent_flat_features = torch.autograd.Variable(agent_flat_features)
-                place_flat_features = torch.autograd.Variable(place_flat_features)
+                verb_pred = torch.autograd.Variable(verb_pred)
                 verb = torch.autograd.Variable(verb)
 
-            verb_predict = model(img)
+            verb_predict = model(img, verb_pred)
 
             top1.add_point_verb_only_eval(img_id, verb_predict, verb)
             top5.add_point_verb_only_eval(img_id, verb_predict, verb)
 
-            del verb_predict, img, agent_flat_features, place_flat_features, verb
-            #break
+            del verb_predict, img, verb
+            break
 
     return top1, top5, 0
 
@@ -176,12 +172,9 @@ def main():
     constructor = 'build_top_down_baseline'
     role_module = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
-    constructor = 'build_single_role_classifier'
-    cnn_verb_module = getattr(single_role_vgg_classifier, constructor)(len(encoder.verb_list))
-
     #building current model
     constructor = 'build_%s' % args.model
-    model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), role_module, cnn_verb_module)
+    model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), role_module)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 

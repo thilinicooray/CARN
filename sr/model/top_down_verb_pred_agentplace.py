@@ -42,10 +42,10 @@ class Top_Down_Baseline(nn.Module):
         self.Dropout_C = Dropout_C
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
 
-    def forward(self, v_org):
+    def forward(self, v_org, verb_pred):
 
         #get agent and place idx to form the query
-        verb_pred = torch.max(self.cnn_verb_module(v_org),-1)[1].squeeze()
+        #verb_pred = torch.max(self.cnn_verb_module(v_org),-1)[1].squeeze()
 
         agent_place_pred, agent_place_rep = self.role_module.forward_agentplace_noverb(v_org, verb_pred)
 
@@ -94,14 +94,13 @@ class Top_Down_Baseline(nn.Module):
 
         return loss
 
-def build_top_down_baseline_verb(num_labels, num_ans_classes, role_module, cnn_verb_module):
+def build_top_down_baseline_verb(num_labels, num_ans_classes, role_module):
 
     hidden_size = 1024
     word_embedding_size = 300
     img_embedding_size = 512
 
     covnet = vgg16_modified()
-    cnn_verb_module = cnn_verb_module
     role_module = role_module
     label_emb = nn.Embedding(num_labels + 1, word_embedding_size, padding_idx=num_labels)
     query_composer = FCNet([word_embedding_size * 2, hidden_size])
@@ -114,7 +113,7 @@ def build_top_down_baseline_verb(num_labels, num_ans_classes, role_module, cnn_v
 
     Dropout_C = nn.Dropout(0.1)
 
-    return Top_Down_Baseline(covnet, cnn_verb_module, role_module, label_emb, query_composer, v_att, q_net,
+    return Top_Down_Baseline(covnet, role_module, label_emb, query_composer, v_att, q_net,
                              v_net, resize_img_flat, classifier, Dropout_C)
 
 
