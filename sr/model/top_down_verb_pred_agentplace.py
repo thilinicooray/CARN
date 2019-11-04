@@ -26,11 +26,10 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, covnet, cnn_verb_module, role_module, label_emb, query_composer, v_att, q_net,
+    def __init__(self, covnet, role_module, label_emb, query_composer, v_att, q_net,
                  v_net, resize_img_flat, classifier, Dropout_C):
         super(Top_Down_Baseline, self).__init__()
         self.convnet = covnet
-        self.cnn_verb_module = cnn_verb_module
         self.role_module = role_module
         self.label_emb = label_emb
         self.query_composer = query_composer
