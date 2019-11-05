@@ -2,7 +2,7 @@ import torch
 import json
 import os
 
-from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
+from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_encoder
 from sr.model import top_down_query_context_only
 
 
@@ -127,6 +127,37 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
     return top1, top5, 0
 
+def eval_rare(model, dev_loader, encoder, gpu_mode, image_group = {}):
+    model.eval()
+
+    print ('evaluating rare portion ...')
+    top1 = imsitu_scorer_rare.imsitu_scorer(encoder, 1, 3, image_group)
+    top5 = imsitu_scorer_rare.imsitu_scorer(encoder, 5, 3, image_group)
+    with torch.no_grad():
+
+        for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+
+            #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
+
+            if gpu_mode >= 0:
+                img = torch.autograd.Variable(img.cuda())
+                verb = torch.autograd.Variable(verb.cuda())
+                labels = torch.autograd.Variable(labels.cuda())
+            else:
+                img = torch.autograd.Variable(img)
+                verb = torch.autograd.Variable(verb)
+                labels = torch.autograd.Variable(labels)
+
+            role_predict = model(img, verb)
+
+            top1.add_point_noun_log(img_id, verb, role_predict, labels)
+            top5.add_point_noun_log(img_id, verb, role_predict, labels)
+
+            del role_predict, img, verb, labels
+            #break
+
+    return top1, top5, 0
+
 def main():
 
     import argparse
@@ -136,12 +167,15 @@ def main():
     parser.add_argument('--resume_training', action='store_true', help='Resume training from the model [resume_model]')
     parser.add_argument('--resume_model', type=str, default='', help='The model we resume')
     parser.add_argument('--evaluate', action='store_true', help='Only use the testing mode')
+    parser.add_argument('--evaluate_rare', action='store_true', help='Only use the testing mode')
     parser.add_argument('--test', action='store_true', help='Only use the testing mode')
     parser.add_argument('--dataset_folder', type=str, default='./imSitu', help='Location of annotations')
     parser.add_argument('--imgset_dir', type=str, default='./resized_256', help='Location of original images')
     parser.add_argument('--train_file', default="train_freq2000.json", type=str, help='trainfile name')
     parser.add_argument('--dev_file', default="dev_freq2000.json", type=str, help='dev file name')
     parser.add_argument('--test_file', default="test_freq2000.json", type=str, help='test file name')
+    parser.add_argument('--org_train_file', default="train.json", type=str, help='org train file name')
+    parser.add_argument('--org_test_file', default="test.json", type=str, help='org test file name')
     parser.add_argument('--model_saving_name', type=str, help='saving name of the outpul model')
 
     parser.add_argument('--epochs', type=int, default=500)
@@ -246,6 +280,65 @@ def main():
             json.dump(pass_val_dict, fp, indent=4)'''
 
         print('Writing predictions to file completed !')
+
+    if args.evaluate_rare:
+
+        org_train_set = json.load(open(dataset_folder + '/' + args.org_train_file))
+        #compute sparsity statistics
+        verb_role_noun_freq = {}
+        for image,frames in org_train_set.items():
+            v = frames["verb"]
+            items = set()
+            for frame in frames["frames"]:
+                for (r,n) in frame.items():
+                    key = (v,r,n)
+                    items.add(key)
+            for key in items:
+                if key not in verb_role_noun_freq: verb_role_noun_freq[key] = 0
+                verb_role_noun_freq[key] += 1
+                #per role it is the most frequent prediction
+                #and among roles its the most rare
+
+        org_eval_dataset = json.load(open(dataset_folder + '/' + args.org_test_file))
+        image_sparsity = {}
+        for image,frames in org_eval_dataset.items():
+            v = frames["verb"]
+            role_max = {}
+            for frame in frames["frames"]:
+                for (r,n) in frame.items():
+                    key = (v,r,n)
+                    if key not in verb_role_noun_freq: freq = 0
+                    else: freq = verb_role_noun_freq[key]
+                    if r not in role_max or role_max[r] < freq: role_max[r] = freq
+            min_val = -1
+            for (r,f) in role_max.items():
+                if min_val == -1 or f < min_val: min_val = f
+            image_sparsity[image] = min_val
+
+        sparsity_max = 10
+        x = range(0, sparsity_max+1)
+        print ("evaluating images where most rare verb-role-noun in training is x , s.t. {} <= x <= {}".format(0, sparsity_max))
+        n = 0
+        for (k,v) in image_sparsity.items():
+            if v in x:
+                n+=1
+        print ("total images = {}".format(n))
+
+        top1, top5, val_loss = eval_rare(model, test_loader, encoder, args.gpuid, image_sparsity)
+
+        top1_avg = top1.get_average_results(range(0, sparsity_max+1))
+        top5_avg = top5.get_average_results(range(0, sparsity_max+1))
+
+        avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
+                    top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
+        avg_score /= 8
+
+        print ('Test rare average :{:.2f} {} {}'.format( avg_score*100,
+                                                         utils.format_dict(top1_avg,'{:.2f}', '1-'),
+                                                         utils.format_dict(top5_avg, '{:.2f}', '5-')))
+
+
+
 
     elif args.test:
         top1, top5, val_loss = eval(model, test_loader, encoder, args.gpuid, write_to_file = True)
