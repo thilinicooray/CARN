@@ -178,16 +178,18 @@ class imsitu_scorer():
 
                     if label_id == gt_label_id:
                         if self.write_to_file:
-                            self.all_res[imgid]['role_pred'][gt_role_list[k]] = \
+                            self.all_res[imgid]['role_pred'].append(
+                                {gt_role_list[k]:
                                 {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
-                                 'is_correct':True}
+                                 'is_correct':True}})
                             #self.all_res[imgid]['correct_roles'].append(gt_role_list[k])
                         found = True
                         break
                     else:
-                        self.all_res[imgid]['role_pred'][gt_role_list[k]] = \
-                            {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
-                             'is_correct':False}
+                        self.all_res[imgid]['role_pred'].append(
+                            {gt_role_list[k]:
+                                 {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
+                                  'is_correct':False}})
                 if not found:
                     all_found = False
                     if self.write_to_file:
