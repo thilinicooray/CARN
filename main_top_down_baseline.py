@@ -327,8 +327,8 @@ def main():
 
         top1, top5, val_loss = eval_rare(model, test_loader, encoder, args.gpuid, image_sparsity)
 
-        top1_avg = top1.get_average_results(range(args.sparsity_min, args.sparsity_max+1))
-        top5_avg = top5.get_average_results(range(args.sparsity_min, args.sparsity_max+1))
+        top1_avg = top1.get_average_results(range(0, sparsity_max+1))
+        top5_avg = top5.get_average_results(range(0, args.sparsity_max+1))
 
         avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
                     top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
