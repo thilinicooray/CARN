@@ -141,7 +141,7 @@ class imsitu_scorer():
             score_card["n_value"] += gt_role_count
 
             if self.write_to_file:
-                self.all_res[imgid] = {'gtv': self.encoder.verb_list[gt_v], 'role_pred':[], 'all_correct': True}
+                self.all_res[imgid] = {'gtv': self.encoder.verb_list[gt_v], 'role_pred':{}, 'all_correct': True}
 
             all_found = True
             pred_situ = []
@@ -157,6 +157,10 @@ class imsitu_scorer():
 
                 found = False
                 pred_situ.append({gt_role_list[k] : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]]})
+
+                if self.write_to_file:
+                    self.all_res[imgid]['role_pred'][gt_role_list[k]] = {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],'is_correct':False}
+
 
                 for r in range(0,self.nref):
                     gt_label_id = gt_label[r][k]
@@ -178,19 +182,10 @@ class imsitu_scorer():
 
                     if label_id == gt_label_id:
                         if self.write_to_file:
-                            self.all_res[imgid]['role_pred'].append(
-                                {gt_role_list[k]:
-                                {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
-                                 'is_correct':True}})
-                            #self.all_res[imgid]['correct_roles'].append(gt_role_list[k])
+                            self.all_res[imgid]['role_pred'][gt_role_list[k]]['is_correct'] = True
                         found = True
                         break
-                    else:
-                        if self.write_to_file:
-                            self.all_res[imgid]['role_pred'].append(
-                                {gt_role_list[k]:
-                                     {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
-                                      'is_correct':False}})
+
                 if not found:
                     all_found = False
                     if self.write_to_file:
@@ -202,6 +197,78 @@ class imsitu_scorer():
                             self.fail_verb_role[fail_val] += 1
 
 
+
+                #both verb and at least one val found
+                if found and verb_found: score_card["value"] += 1
+                #at least one val found
+                if found: score_card["value*"] += 1
+
+            #both verb and all values found
+            score_card["value*"] /= gt_role_count
+            score_card["value"] /= gt_role_count
+            if all_found and verb_found: score_card["value-all"] += 1
+            #all values found
+            if all_found:
+                score_card["value-all*"] += 1
+                if self.write_to_file:
+                    self.vall_all_correct[imgid] = pred_situ
+            else:
+                if self.write_to_file:
+                    self.value_all_dict[imgid] = pred_situ
+
+            self.score_cards.append(new_card)
+
+    def add_point_noun_log_topk(self, img_id, gt_verbs, labels_predict, gt_labels):
+
+        batch_size = gt_verbs.size()[0]
+        for i in range(batch_size):
+            imgid = img_id[i]
+            gt_verb = gt_verbs[i]
+            label_pred = labels_predict[i]
+            gt_label = gt_labels[i]
+
+            gt_v = gt_verb
+
+            new_card = {"verb":0.0, "value":0.0, "value*":0.0, "n_value":0.0, "value-all":0.0, "value-all*":0.0}
+
+            score_card = new_card
+
+            verb_found = False
+
+            gt_role_count = self.encoder.get_role_count(gt_v)
+            gt_role_list = self.encoder.verb2_role_dict[self.encoder.verb_list[gt_v]]
+            score_card["n_value"] += gt_role_count
+
+            if self.write_to_file:
+                self.all_res[imgid] = {'gtv': self.encoder.verb_list[gt_v], 'role_pred':[], 'all_correct': True}
+
+            all_found = True
+            pred_situ = []
+            for k in range(0, gt_role_count):
+                if self.write_to_file:
+                    all_val = self.encoder.verb_list[gt_v] + '_' + gt_role_list[k]
+                    if all_val not in self.all_verb_role:
+                        self.all_verb_role[all_val] = 1
+                    else:
+                        self.all_verb_role[all_val] += 1
+
+                #label_id = torch.max(label_pred[k],0)[1]
+
+                sorted_idx = torch.sort(label_pred[k], 0, True)[1]
+
+                found = False
+
+                for r in range(0,self.nref):
+                    gt_label_id = gt_label[r][k]
+
+                    role_found = (torch.sum(sorted_idx[0:2] == gt_label_id) == 1)
+
+                    if role_found:
+                        found = True
+                        break
+
+                if not found:
+                    all_found = False
 
                 #both verb and at least one val found
                 if found and verb_found: score_card["value"] += 1
