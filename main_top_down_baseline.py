@@ -320,7 +320,9 @@ def main():
         print ("evaluating images where most rare verb-role-noun in training is x , s.t. {} <= x <= {}".format(0, sparsity_max))
         n = 0
         for (k,v) in image_sparsity.items():
-            if v in x: n+=1
+            if v in x:
+                n+=1
+                print(k)
         print ("total images = {}".format(n))
 
 
@@ -328,7 +330,7 @@ def main():
         top1, top5, val_loss = eval_rare(model, test_loader, encoder, args.gpuid, image_sparsity)
 
         top1_avg = top1.get_average_results(range(0, sparsity_max+1))
-        top5_avg = top5.get_average_results(range(0, args.sparsity_max+1))
+        top5_avg = top5.get_average_results(range(0, sparsity_max+1))
 
         avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
                     top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
