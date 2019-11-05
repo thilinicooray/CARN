@@ -130,6 +130,7 @@ class Top_Down_Baseline(nn.Module):
         verb_embed_expand = verb_embd.expand(max_role_count, verb_embd.size(0), verb_embd.size(1))
         verb_embed_expand = verb_embed_expand.transpose(0,1)
         concat_query = verb_embed_expand + role_embd
+        print(concat_query.size(), verb_embed_expand.size(), role_embd.size())
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1))
         q_emb = self.query_composer(role_verb_embd)
 
