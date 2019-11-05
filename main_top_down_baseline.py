@@ -118,8 +118,8 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             role_predict = model(img, verb)
 
             if write_to_file:
-                top1.add_point_noun_log_topk(img_id, verb, role_predict, labels)
-                top5.add_point_noun_log_topk(img_id, verb, role_predict, labels)
+                top1.add_point_noun_log(img_id, verb, role_predict, labels)
+                top5.add_point_noun_log(img_id, verb, role_predict, labels)
             else:
                 top1.add_point_noun(verb, role_predict, labels)
                 top5.add_point_noun(verb, role_predict, labels)

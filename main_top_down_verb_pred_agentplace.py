@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_loader, imsitu_encoder
-from sr.model import top_down_verb_pred_agentplace, top_down_baseline, single_role_vgg_classifier
+from sr.model import top_down_verb_pred_agentplace, top_down_baseline_addemb
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -169,7 +169,7 @@ def main():
 
     #loading classifier part from pretrained agent and place models
     constructor = 'build_top_down_baseline'
-    role_module = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
+    role_module = getattr(top_down_baseline_addemb, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
     #building current model
     constructor = 'build_%s' % args.model

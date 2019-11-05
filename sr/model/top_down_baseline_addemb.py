@@ -96,7 +96,7 @@ class Top_Down_Baseline(nn.Module):
 
         return role_label_pred
 
-    def forward_agentplace_noverb(self, v_org, pred_verb):
+    def forward_agentplace_noverb(self, v_org):
 
         max_role_count = 2
 
@@ -123,13 +123,9 @@ class Top_Down_Baseline(nn.Module):
         #verb_embd = torch.sum(self.verb_emb.weight, 0)
         #verb_embd = verb_embd.expand(batch_size, verb_embd.size(-1))
         #verb_embd = torch.zeros(batch_size, 300).cuda()
-        verb_embd = self.verb_emb(pred_verb)
-
         role_embd = self.role_emb(role_idx)
 
-        verb_embed_expand = verb_embd.expand(max_role_count, verb_embd.size(0), verb_embd.size(1))
-        verb_embed_expand = verb_embed_expand.transpose(0,1)
-        concat_query = verb_embed_expand + role_embd
+        concat_query = role_embd
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1))
         q_emb = self.query_composer(role_verb_embd)
 
@@ -153,7 +149,7 @@ class Top_Down_Baseline(nn.Module):
         logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), max_role_count, -1)
-        role_label_rep = v_repr.contiguous().view(v.size(0), max_role_count, -1)
+        role_label_rep = out.contiguous().view(v.size(0), max_role_count, -1)
 
         return role_label_pred, role_label_rep
 

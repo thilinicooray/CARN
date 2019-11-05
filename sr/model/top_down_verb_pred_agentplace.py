@@ -47,7 +47,7 @@ class Top_Down_Baseline(nn.Module):
         #get agent and place idx to form the query
         #verb_pred = torch.max(self.cnn_verb_module(v_org),-1)[1].squeeze()
 
-        agent_place_pred, agent_place_rep = self.role_module.forward_agentplace_noverb(v_org, verb_pred.long().squeeze())
+        agent_place_pred, agent_place_rep = self.role_module.forward_agentplace_noverb(v_org)
 
         role_rep_combo = torch.sum(agent_place_rep, 1)
 
@@ -61,6 +61,7 @@ class Top_Down_Baseline(nn.Module):
         batch_size, n_channel, conv_h, conv_w = img_features.size()
         img_feat_flat = self.avg_pool(img_features)
         img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
+        #todo: add normalization here as well
         ext_ctx = img_feat_flat * role_rep_combo
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
