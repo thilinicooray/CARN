@@ -261,7 +261,7 @@ class imsitu_scorer():
                 for r in range(0,self.nref):
                     gt_label_id = gt_label[r][k]
 
-                    role_found = (torch.sum(sorted_idx[0:2] == gt_label_id) == 1)
+                    role_found = (torch.sum(sorted_idx[0:5] == gt_label_id) == 1)
 
                     if role_found:
                         found = True
