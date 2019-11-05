@@ -141,8 +141,7 @@ class imsitu_scorer():
             score_card["n_value"] += gt_role_count
 
             if self.write_to_file:
-                self.all_res[imgid] = {'gtv': gt_verb.item(),
-                                       'correct_roles':[]}
+                self.all_res[imgid] = {'gtv': self.encoder.verb_list[gt_v], 'role_pred':[], 'all_correct': True}
 
             all_found = True
             pred_situ = []
@@ -179,17 +178,27 @@ class imsitu_scorer():
 
                     if label_id == gt_label_id:
                         if self.write_to_file:
-                            self.all_res[imgid]['correct_roles'].append(gt_role_list[k])
+                            self.all_res[imgid]['role_pred'][gt_role_list[k]] = \
+                                {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
+                                 'is_correct':True}
+                            #self.all_res[imgid]['correct_roles'].append(gt_role_list[k])
                         found = True
                         break
+                    else:
+                        self.all_res[imgid]['role_pred'][gt_role_list[k]] = \
+                            {'pred' : self.encoder.all_words[self.encoder.labelid2nlword[self.encoder.label_list[label_id]]],
+                             'is_correct':False}
                 if not found:
                     all_found = False
                     if self.write_to_file:
+                        self.all_res[imgid]['all_correct'] = False
                         fail_val = self.encoder.verb_list[gt_v] + '_' + gt_role_list[k]
                         if fail_val not in self.fail_verb_role:
                             self.fail_verb_role[fail_val] = 1
                         else:
                             self.fail_verb_role[fail_val] += 1
+
+
 
                 #both verb and at least one val found
                 if found and verb_found: score_card["value"] += 1

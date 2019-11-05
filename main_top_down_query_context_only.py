@@ -232,18 +232,18 @@ def main():
                                                    utils.format_dict(top5_avg, '{:.2f}', '5-')))
 
         #write results to csv file
-        role_dict = top1.role_dict
+        role_dict = top1.all_res
         fail_val_all = top1.value_all_dict
         pass_val_dict = top1.vall_all_correct
 
         with open(args.model_saving_name+'_role_pred_data.json', 'w') as fp:
             json.dump(role_dict, fp, indent=4)
 
-        with open(args.model_saving_name+'_fail_val_all.json', 'w') as fp:
+        '''with open(args.model_saving_name+'_fail_val_all.json', 'w') as fp:
             json.dump(fail_val_all, fp, indent=4)
 
         with open(args.model_saving_name+'_pass_val_all.json', 'w') as fp:
-            json.dump(pass_val_dict, fp, indent=4)
+            json.dump(pass_val_dict, fp, indent=4)'''
 
         print('Writing predictions to file completed !')
 
