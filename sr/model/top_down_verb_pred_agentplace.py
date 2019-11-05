@@ -45,9 +45,9 @@ class Top_Down_Baseline(nn.Module):
     def forward(self, v_org, verb_pred):
 
         #get agent and place idx to form the query
-        #verb_pred = torch.max(self.cnn_verb_module(v_org),-1)[1].squeeze()
+        verb_pred = torch.max(self.cnn_verb_module(v_org),-1)[1].squeeze()
 
-        agent_place_pred, agent_place_rep = self.role_module.forward_agentplace_noverb(v_org)
+        agent_place_pred, agent_place_rep = self.role_module.forward_agentplace_noverb(v_org, verb_pred)
 
         role_rep_combo = torch.sum(agent_place_rep, 1)
 
