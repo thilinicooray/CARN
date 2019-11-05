@@ -319,12 +319,15 @@ def main():
         x = range(0, sparsity_max+1)
         print ("evaluating images where most rare verb-role-noun in training is x , s.t. {} <= x <= {}".format(0, sparsity_max))
         n = 0
+        rare_images = []
         for (k,v) in image_sparsity.items():
             if v in x:
                 n+=1
-                print(k)
+                rare_images.append(k)
         print ("total images = {}".format(n))
-
+        with open('rare_images.txt', 'w') as filehandle:
+            for listitem in rare_images:
+                filehandle.write('%s\n' % listitem)
 
 
         top1, top5, val_loss = eval_rare(model, test_loader, encoder, args.gpuid, image_sparsity)

@@ -165,8 +165,6 @@ class imsitu_scorer():
                 if found: score_card["value*"] += 1
 
             #both verb and all values found
-            score_card["value*"] /= gt_role_count
-            score_card["value"] /= gt_role_count
             if all_found and verb_found: score_card["value-all"] += 1
             #all values found
             if all_found:
