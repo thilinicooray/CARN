@@ -3,7 +3,7 @@ import json
 
 class imsitu_scorer():
     def __init__(self, encoder,topk, nref, image_group):
-        self.score_cards = []
+        self.score_cards = {}
         self.topk = topk
         self.nref = nref
         self.encoder = encoder
