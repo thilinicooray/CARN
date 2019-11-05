@@ -172,7 +172,6 @@ class imsitu_scorer():
             if all_found:
                 score_card["value-all*"] += 1
 
-            self.score_cards.append(new_card)
 
     def add_point_noun_log_topk(self, img_id, gt_verbs, labels_predict, gt_labels):
 
