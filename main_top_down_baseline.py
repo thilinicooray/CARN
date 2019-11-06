@@ -111,6 +111,8 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             if img_id[0] in img_id_list:
                 print('handling ', img_id[0])
                 show_att = True
+            else:
+                continue
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
