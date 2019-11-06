@@ -37,7 +37,7 @@ class Top_Down_Baseline(nn.Module):
         self.encoder = encoder
         self.Dropout_C = Dropout_C
 
-    def forward(self, v_org, gt_verb):
+    def forward(self, v_org, gt_verb, show_att = False):
 
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
@@ -71,10 +71,11 @@ class Top_Down_Baseline(nn.Module):
         att = self.v_att(img, q_emb)
         v_emb = (att * img).sum(1)
 
-        '''print(' analysis ')
-        att1 = att.contiguous().view(batch_size,6, 7,7)
+        if show_att:
+            print(' analysis ')
+            att1 = att.contiguous().view(batch_size,6, 7,7)
 
-        print(att1[0])'''
+            print(att1[0])
 
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
