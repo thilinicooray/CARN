@@ -55,7 +55,7 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
 
-    def forward(self, v_org, gt_verb):
+    def forward(self, v_org, gt_verb, show_att):
 
         q_list = []
         ans_list = []
@@ -127,6 +127,14 @@ class Top_Down_Baseline(nn.Module):
             updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
             att = self.v_att(img, updated_q_emb)
+
+            if show_att:
+                print(' analysis ')
+            att1 = att.contiguous().view(batch_size,6, 7,7)
+
+            print(att1[0])
+
+
             v_emb = (att * img).sum(1)
             v_repr = self.v_net(v_emb)
             q_repr = self.q_net(updated_q_emb)

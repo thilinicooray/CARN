@@ -97,12 +97,21 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
+    img_id_list = ['trimming_146.jpg', 'wagging_177.jpg', 'lighting_104.jpg', 'punching_29.jpg']
+
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
         for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+
+            show_att = False
+            if img_id[0] in img_id_list:
+                print('handling ', img_id[0])
+                show_att = True
+            else:
+                continue
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
@@ -113,7 +122,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model(img, verb)
+            role_predict = model(img, verb, show_att)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
