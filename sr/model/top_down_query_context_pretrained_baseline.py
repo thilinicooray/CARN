@@ -57,7 +57,7 @@ class Top_Down_Baseline(nn.Module):
 
     def forward(self, v_org, gt_verb):
 
-        baseline_out = self.baseline_model(v_org, gt_verb)
+        baseline_out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
 
         n_heads = 1
 
