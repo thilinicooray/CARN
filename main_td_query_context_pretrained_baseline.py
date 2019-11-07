@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_encoder
-from sr.model import top_down_baseline
+from sr.model import top_down_query_context_pretrained_baseline, top_down_baseline
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -97,9 +97,6 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list = ['whistling_137.jpg', 'betting_173.jpg', 'submerging_181.jpg', 'repairing_166.jpg', 'jogging_107.jpg', 'giving_172.jpg',
-                   'dousing_34.jpg', 'waddling_181.jpg', 'vacuuming_145.jpg', 'packing_248.jpg', 'raking_254.jpg', 'rearing_139.jpg']
-
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
@@ -107,25 +104,16 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
         for i, (img_id, img, verb, labels) in enumerate(dev_loader):
 
-            #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
-            show_att = False
-            if img_id[0] in img_id_list:
-                print('handling ', img_id[0])
-                show_att = True
-            else:
-                continue
-
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
-                labels = torch.autograd.Variable(labels.cuda())
                 labels = torch.autograd.Variable(labels.cuda())
             else:
                 img = torch.autograd.Variable(img)
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model.forward_vis(img, verb, show_att)
+            role_predict = model(img, verb)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -191,11 +179,13 @@ def main():
     parser.add_argument('--model_saving_name', type=str, help='saving name of the outpul model')
 
     parser.add_argument('--epochs', type=int, default=500)
-    parser.add_argument('--model', type=str, default='top_down_baseline')
+    parser.add_argument('--model', type=str, default='top_down_query_context_only_baseline')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=1111, help='random seed')
     parser.add_argument('--clip_norm', type=float, default=0.25)
     parser.add_argument('--num_workers', type=int, default=3)
+
+    parser.add_argument('--baseline_model', type=str, default='', help='Pretrained baseline topdown model')
 
     args = parser.parse_args()
 
@@ -213,8 +203,11 @@ def main():
 
     train_set = imsitu_loader.imsitu_loader(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
+    constructor = 'build_top_down_baseline'
+    baseline = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
+
     constructor = 'build_%s' % args.model
-    model = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
+    model = getattr(top_down_query_context_pretrained_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder, baseline)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
@@ -248,14 +241,17 @@ def main():
         print('Training from the scratch.')
         model_name = 'train_full'
         utils.set_trainable(model, True)
+        utils.load_net(args.baseline_model, [model.baseline_model])
+        utils.set_trainable(model.baseline_model, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
-            {'params': model.query_composer.parameters()},
             {'params': model.v_att.parameters()},
             {'params': model.q_net.parameters()},
             {'params': model.v_net.parameters()},
+            {'params': model.updated_query_composer.parameters()},
+            {'params': model.neighbour_attention.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
@@ -275,7 +271,7 @@ def main():
                                                    utils.format_dict(top1_avg,'{:.2f}', '1-'),
                                                    utils.format_dict(top5_avg, '{:.2f}', '5-')))
 
-        #write results to json file
+        #write results to csv file
         role_dict = top1.all_res
         fail_val_all = top1.value_all_dict
         pass_val_dict = top1.vall_all_correct
@@ -329,16 +325,10 @@ def main():
         x = range(0, sparsity_max+1)
         print ("evaluating images where most rare verb-role-noun in training is x , s.t. {} <= x <= {}".format(0, sparsity_max))
         n = 0
-        rare_images = []
         for (k,v) in image_sparsity.items():
             if v in x:
                 n+=1
-                rare_images.append(k)
         print ("total images = {}".format(n))
-        with open('rare_images.txt', 'w') as filehandle:
-            for listitem in rare_images:
-                filehandle.write('%s\n' % listitem)
-
 
         top1, top5, val_loss = eval_rare(model, test_loader, encoder, args.gpuid, image_sparsity)
 
@@ -350,8 +340,9 @@ def main():
         avg_score /= 8
 
         print ('Test rare average :{:.2f} {} {}'.format( avg_score*100,
-                                                   utils.format_dict(top1_avg,'{:.2f}', '1-'),
-                                                   utils.format_dict(top5_avg, '{:.2f}', '5-')))
+                                                         utils.format_dict(top1_avg,'{:.2f}', '1-'),
+                                                         utils.format_dict(top5_avg, '{:.2f}', '5-')))
+
 
 
 
