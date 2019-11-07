@@ -97,7 +97,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list = ['trimming_146.jpg', 'wagging_177.jpg', 'lighting_104.jpg', 'punching_29.jpg']
+    img_id_list = ['whistling_137.jpg', 'betting_173.jpg', 'submerging_181.jpg', 'repairing_166.jpg', 'jogging_107.jpg', 'giving_172.jpg',
+                   'dousing_34.jpg', 'waddling_181.jpg', 'vacuuming_145.jpg', 'packing_248.jpg', 'raking_254.jpg', 'rearing_139.jpg']
 
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
