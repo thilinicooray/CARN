@@ -97,8 +97,45 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list = ['whistling_137.jpg', 'betting_173.jpg', 'submerging_181.jpg', 'repairing_166.jpg', 'jogging_107.jpg', 'giving_172.jpg',
-                   'dousing_34.jpg', 'waddling_181.jpg', 'vacuuming_145.jpg', 'packing_248.jpg', 'raking_254.jpg', 'rearing_139.jpg']
+    print ('evaluating model...')
+    top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
+    top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
+    with torch.no_grad():
+
+        for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+
+            #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
+
+            if gpu_mode >= 0:
+                img = torch.autograd.Variable(img.cuda())
+                verb = torch.autograd.Variable(verb.cuda())
+                labels = torch.autograd.Variable(labels.cuda())
+                labels = torch.autograd.Variable(labels.cuda())
+            else:
+                img = torch.autograd.Variable(img)
+                verb = torch.autograd.Variable(verb)
+                labels = torch.autograd.Variable(labels)
+
+            role_predict = model(img, verb)
+
+            if write_to_file:
+                top1.add_point_noun_log(img_id, verb, role_predict, labels)
+                top5.add_point_noun_log(img_id, verb, role_predict, labels)
+            else:
+                top1.add_point_noun(verb, role_predict, labels)
+                top5.add_point_noun(verb, role_predict, labels)
+
+            del role_predict, img, verb, labels
+            #break
+
+    return top1, top5, 0
+
+def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
+    model.eval()
+
+    img_id_list = ['interviewing_256.jpg', 'moistening_47.jpg', 'rearing_139.jpg', 'fetching_32.jpg', 'crushing_232.jpg', 'giving_172.jpg',
+                   'kissing_108.jpg', 'ramming_146.jpg', 'tattooing_7.jpg', 'sleeping_175.jpg', 'scratching_308.jpg', 'pawing_91.jpg',
+                    'stuffing_198.jpg', 'lifting_148.jpg', 'leaking_40.jpg', 'bandaging_26.jpg', 'jogging_107.jpg']
 
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
@@ -125,7 +162,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model(img, verb, show_att)
+            role_predict = model.forward_vis(img, verb, show_att)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -179,6 +216,7 @@ def main():
     parser.add_argument('--resume_training', action='store_true', help='Resume training from the model [resume_model]')
     parser.add_argument('--resume_model', type=str, default='', help='The model we resume')
     parser.add_argument('--evaluate', action='store_true', help='Only use the testing mode')
+    parser.add_argument('--evaluate_visualize', action='store_true', help='Only use the testing mode to visualize ')
     parser.add_argument('--evaluate_rare', action='store_true', help='Only use the testing mode')
     parser.add_argument('--test', action='store_true', help='Only use the testing mode')
     parser.add_argument('--dataset_folder', type=str, default='./imSitu', help='Location of annotations')
@@ -290,6 +328,11 @@ def main():
             json.dump(pass_val_dict, fp, indent=4)'''
 
         print('Writing predictions to file completed !')
+
+    elif args.evaluate_visualize:
+        top1, top5, val_loss = eval_output(model, dev_loader, encoder, args.gpuid, write_to_file = True)
+
+
 
     elif args.evaluate_rare:
 
