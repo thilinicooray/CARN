@@ -40,7 +40,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, convnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, n_iter):
+    def __init__(self, baseline_model, convnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, iter_att, classifier, encoder, n_iter):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.convnet = convnet
@@ -52,6 +52,7 @@ class Top_Down_Baseline(nn.Module):
         self.updated_query_composer = updated_query_composer
         self.neighbour_attention = neighbour_attention
         self.Dropout_C = Dropout_C
+        self.iter_att = iter_att
         self.classifier = classifier
         self.encoder = encoder
         self.n_iter = n_iter
@@ -129,6 +130,10 @@ class Top_Down_Baseline(nn.Module):
                 all = out.unsqueeze(1)
             else:
                 all = torch.cat((all.clone(), out.unsqueeze(1)), 1)
+
+
+
+
                 out = torch.sum(all, 1)
 
         logits = self.classifier(out)
@@ -216,7 +221,12 @@ class Top_Down_Baseline(nn.Module):
                 all = out.unsqueeze(1)
             else:
                 all = torch.cat((all.clone(), self.Dropout_C(out).unsqueeze(1)), 1)
-                out = torch.sum(all, 1)
+
+                all_att = self.iter_att(all.contiguous().view(-1, all.size(-1)))
+                all_att = F.softmax(all_att.contiguous().view(batch_size* self.encoder.max_role_count, -1, 1), dim = 1)
+                print(all_att[:3])
+                attended_all = all_att * all
+                out = torch.sum(attended_all, 1)
 
         logits = self.classifier(out)
 
@@ -294,10 +304,12 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
+    iter_att = nn.Linear(hidden_size, 1)
+
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(baseline_model, covnet, role_emb, verb_emb, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, n_iter)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, iter_att ,classifier, encoder, n_iter)
 
 
