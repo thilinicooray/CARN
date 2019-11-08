@@ -6,7 +6,7 @@ from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_e
 from sr.model import top_down_query_context_only
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -95,6 +95,39 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
         scheduler.step()
 
 def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
+    model.eval()
+
+    print ('evaluating model...')
+    top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
+    top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
+    with torch.no_grad():
+
+        for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+
+            if gpu_mode >= 0:
+                img = torch.autograd.Variable(img.cuda())
+                verb = torch.autograd.Variable(verb.cuda())
+                labels = torch.autograd.Variable(labels.cuda())
+            else:
+                img = torch.autograd.Variable(img)
+                verb = torch.autograd.Variable(verb)
+                labels = torch.autograd.Variable(labels)
+
+            role_predict = model(img, verb)
+
+            if write_to_file:
+                top1.add_point_noun_log(img_id, verb, role_predict, labels)
+                top5.add_point_noun_log(img_id, verb, role_predict, labels)
+            else:
+                top1.add_point_noun(verb, role_predict, labels)
+                top5.add_point_noun(verb, role_predict, labels)
+
+            del role_predict, img, verb, labels
+            break
+
+    return top1, top5, 0
+
+def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
     img_id_list = ['whistling_137.jpg', 'betting_173.jpg', 'submerging_181.jpg', 'repairing_166.jpg', 'jogging_107.jpg', 'giving_172.jpg',
