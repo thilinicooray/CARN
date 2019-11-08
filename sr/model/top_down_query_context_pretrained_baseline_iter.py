@@ -131,7 +131,11 @@ class Top_Down_Baseline(nn.Module):
             else:
                 all = torch.cat((all.clone(), out.unsqueeze(1)), 1)
 
-
+                all_att = self.iter_att(all.contiguous().view(-1, all.size(-1)))
+                all_att = F.softmax(all_att.contiguous().view(batch_size* self.encoder.max_role_count, -1, 1), dim = 1)
+                print(all_att[:3])
+                attended_all = all_att * all
+                out = torch.sum(attended_all, 1)
 
 
                 out = torch.sum(all, 1)
@@ -224,7 +228,6 @@ class Top_Down_Baseline(nn.Module):
 
                 all_att = self.iter_att(all.contiguous().view(-1, all.size(-1)))
                 all_att = F.softmax(all_att.contiguous().view(batch_size* self.encoder.max_role_count, -1, 1), dim = 1)
-                print(all_att[:3])
                 attended_all = all_att * all
                 out = torch.sum(attended_all, 1)
 
