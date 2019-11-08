@@ -40,7 +40,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, convnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
+    def __init__(self, baseline_model, convnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, n_iter):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.convnet = convnet
@@ -54,6 +54,7 @@ class Top_Down_Baseline(nn.Module):
         self.Dropout_C = Dropout_C
         self.classifier = classifier
         self.encoder = encoder
+        self.n_iter = n_iter
 
     def forward(self, v_org, gt_verb):
 
@@ -96,7 +97,7 @@ class Top_Down_Baseline(nn.Module):
 
         out = baseline_out
 
-        for iter in range(2):
+        for iter in range(self.n_iter):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -177,7 +178,7 @@ class Top_Down_Baseline(nn.Module):
 
         out = baseline_out
 
-        for iter in range(2):
+        for iter in range(self.n_iter):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -214,7 +215,7 @@ class Top_Down_Baseline(nn.Module):
             if iter == 0:
                 all = out.unsqueeze(1)
             else:
-                all = torch.cat((all.clone(), out.unsqueeze(1)), 1)
+                all = torch.cat((all.clone(), self.Dropout_C(out).unsqueeze(1)), 1)
                 out = torch.sum(all, 1)
 
         logits = self.classifier(out)
@@ -278,7 +279,7 @@ class MultiHeadedAttention(nn.Module):
         return self.linears[-1](x), torch.mean(self.attn, 1)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline_model):
-
+    n_iter = 2
     hidden_size = 1024
     word_embedding_size = 300
     img_embedding_size = 512
@@ -297,6 +298,6 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(baseline_model, covnet, role_emb, verb_emb, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder, n_iter)
 
 
