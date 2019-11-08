@@ -125,7 +125,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model.forward_vis(img, verb, show_att)
+            role_predict = model(img, verb, show_att)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -291,7 +291,7 @@ def main():
 
         print('Writing predictions to file completed !')
 
-    if args.evaluate_rare:
+    elif args.evaluate_rare:
 
         org_train_set = json.load(open(dataset_folder + '/' + args.org_train_file))
         #compute sparsity statistics

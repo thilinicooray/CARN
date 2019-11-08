@@ -287,7 +287,7 @@ def main():
 
         print('Writing predictions to file completed !')
 
-    if args.evaluate_rare:
+    elif args.evaluate_rare:
 
         org_train_set = json.load(open(dataset_folder + '/' + args.org_train_file))
         #compute sparsity statistics
