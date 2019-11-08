@@ -137,9 +137,6 @@ class Top_Down_Baseline(nn.Module):
                 attended_all = all_att * all
                 out = torch.sum(attended_all, 1)
 
-
-                out = torch.sum(all, 1)
-
         logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
