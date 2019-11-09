@@ -161,9 +161,8 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 labels = torch.autograd.Variable(labels)
 
             role_predict, mean_score = model.forward_vis(img, verb, show_att)
-            print(mean_score.size())
 
-            tot_score.append()
+            tot_score.append(mean_score)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -175,7 +174,9 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             del role_predict, img, verb, labels
             #break
 
-    print(tot_score)
+    a = torch.stack(tot_score)
+    print(a.size())
+    #print(tot_score)
 
     return top1, top5, 0
 
