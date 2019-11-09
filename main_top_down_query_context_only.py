@@ -155,7 +155,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model(img, verb, show_att)
+            role_predict = model.forward_vis(img, verb, show_att)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -209,6 +209,7 @@ def main():
     parser.add_argument('--resume_training', action='store_true', help='Resume training from the model [resume_model]')
     parser.add_argument('--resume_model', type=str, default='', help='The model we resume')
     parser.add_argument('--evaluate', action='store_true', help='Only use the testing mode')
+    parser.add_argument('--evaluate_visualize', action='store_true', help='Only use the testing mode to visualize ')
     parser.add_argument('--evaluate_rare', action='store_true', help='Only use the testing mode')
     parser.add_argument('--test', action='store_true', help='Only use the testing mode')
     parser.add_argument('--dataset_folder', type=str, default='./imSitu', help='Location of annotations')
@@ -322,6 +323,9 @@ def main():
             json.dump(pass_val_dict, fp, indent=4)'''
 
         print('Writing predictions to file completed !')
+
+    elif args.evaluate_visualize:
+        top1, top5, val_loss = eval_output(model, dev_loader, encoder, args.gpuid, write_to_file = True)
 
     elif args.evaluate_rare:
 
