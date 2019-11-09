@@ -257,7 +257,7 @@ class Top_Down_Baseline(nn.Module):
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
 
-            print('gate ', torch.mean(gate.contiguous().view(v.size(0), self.encoder.max_role_count, -1),-1))
+            print('gate ', gate.contiguous().view(v.size(0), self.encoder.max_role_count, -1))
             out = gate * ans_list[-1] + (1-gate) * out
 
             q_list.append(q_repr)
