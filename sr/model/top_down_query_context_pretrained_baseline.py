@@ -34,12 +34,11 @@ def attention(query, key, value, mask=None, dropout=None):
 
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
-    print('scores ', torch.mean(scores,1))
     p_attn = F.softmax(scores, dim = -1)
     if dropout is not None:
         p_attn = dropout(p_attn)
 
-    return torch.matmul(p_attn, value), p_attn
+    return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
 
 class Top_Down_Baseline(nn.Module):
     def __init__(self, baseline_model, convnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, Dropout_C, classifier, encoder):
@@ -166,7 +165,7 @@ class Top_Down_Baseline(nn.Module):
 
         cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+        neighbours, _, mean_scores = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
         withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
@@ -174,11 +173,11 @@ class Top_Down_Baseline(nn.Module):
 
         att = self.v_att(img, updated_q_emb)
 
-        if show_att:
-            print(' analysis ')
-            att1 = att.contiguous().view(batch_size,6, 7,7)
+        #if show_att:
+            #print(' analysis ')
+            #att1 = att.contiguous().view(batch_size,6, 7,7)
 
-            print(att1[0])
+            #print(att1[0])
 
         v_emb = (att * img).sum(1)
         v_repr = self.v_net(v_emb)
@@ -200,7 +199,7 @@ class Top_Down_Baseline(nn.Module):
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        return role_label_pred
+        return role_label_pred, mean_scores
 
     def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
@@ -247,7 +246,7 @@ class MultiHeadedAttention(nn.Module):
              for l, x in zip(self.linears, (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = attention(query, key, value, mask=mask,
+        x, self.attn, mean_scores = attention(query, key, value, mask=mask,
                                  dropout=self.dropout)
 
         # 3) "Concat" using a view and apply a final linear.

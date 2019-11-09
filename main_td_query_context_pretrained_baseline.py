@@ -131,6 +131,9 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
     img_id_list = ['applying_277.jpg', 'applying_90.jpg', 'applying_205.jpg', 'applying_187.jpg', 'applying_154.jpg']
+    verb_name = 'applying'
+
+    tot_score = 0
 
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
@@ -141,7 +144,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
             show_att = False
-            if img_id[0] in img_id_list:
+            if verb_name in img_id[0]:
                 print('handling ', img_id[0])
                 show_att = True
             else:
@@ -157,7 +160,12 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
 
-            role_predict = model.forward_vis(img, verb, show_att)
+            role_predict, mean_score = model.forward_vis(img, verb, show_att)
+
+            if tot_score == 0:
+                tot_score = mean_score
+            else:
+                tot_score += mean_score
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
@@ -168,6 +176,8 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             del role_predict, img, verb, labels
             #break
+
+    print(tot_score)
 
     return top1, top5, 0
 
