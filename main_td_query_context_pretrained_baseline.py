@@ -133,7 +133,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     img_id_list = ['applying_277.jpg', 'applying_90.jpg', 'applying_205.jpg', 'applying_187.jpg', 'applying_154.jpg']
     verb_name = 'applying'
 
-    tot_score = 0
+    tot_score = []
 
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
@@ -161,11 +161,9 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 labels = torch.autograd.Variable(labels)
 
             role_predict, mean_score = model.forward_vis(img, verb, show_att)
+            print(mean_score.size())
 
-            if tot_score == 0:
-                tot_score = mean_score
-            else:
-                tot_score += mean_score
+            tot_score.append()
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)
