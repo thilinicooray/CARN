@@ -130,8 +130,8 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list = ['applying_277.jpg', 'applying_90.jpg', 'applying_205.jpg', 'applying_187.jpg', 'applying_154.jpg']
-    verb_name = 'opening'
+    img_id_list = ['opening_260.jpg', 'opening_248.jpg','opening_258.jpg','opening_290.jpg', 'pawing_37.jpg', 'applying_277.jpg', 'applying_184.jpg']
+    #verb_name = 'opening'
 
     tot_score = []
 
@@ -144,7 +144,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
             show_att = False
-            if verb_name in img_id[0]:
+            if img_id[0] in img_id_list:
                 print('handling ', img_id[0])
                 show_att = True
             else:
@@ -174,8 +174,8 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             del role_predict, img, verb, labels
             #break
 
-    a = torch.sum(torch.stack(tot_score).squeeze(),0)
-    print(a)
+    '''a = torch.sum(torch.stack(tot_score).squeeze(),0)
+    print(a)'''
     #print(tot_score)
 
     return top1, top5, 0
