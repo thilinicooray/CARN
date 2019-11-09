@@ -222,7 +222,9 @@ class Top_Down_Baseline(nn.Module):
 
             cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-            neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+            neighbours, nei_att = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+
+            print('role dependece ', nei_att)
 
             withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
@@ -254,6 +256,8 @@ class Top_Down_Baseline(nn.Module):
             out = mfb_l2
 
             gate = torch.sigmoid(q_list[-1] * q_repr)
+
+            print('gate ', torch.mean(gate.contiguous().view(v.size(0), self.encoder.max_role_count, -1),-1))
             out = gate * ans_list[-1] + (1-gate) * out
 
             q_list.append(q_repr)
