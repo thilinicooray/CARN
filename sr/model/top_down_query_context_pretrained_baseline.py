@@ -164,7 +164,9 @@ class Top_Down_Baseline(nn.Module):
 
         cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+        neighbours, nei_att = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+
+        print('nei_att', nei_att)
 
         withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
@@ -247,6 +249,8 @@ class MultiHeadedAttention(nn.Module):
         # 2) Apply attention on all the projected vectors in batch.
         x, self.attn = attention(query, key, value, mask=mask,
                                  dropout=self.dropout)
+
+        print('all att ', self.attn)
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous() \
