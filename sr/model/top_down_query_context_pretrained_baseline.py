@@ -35,7 +35,7 @@ def attention(query, key, value, mask=None, dropout=None):
 
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
-    print('scores ', scores.size(), torch.mean(scores,1))
+    print('scores ', torch.sum(scores,1))
     p_attn = F.softmax(scores, dim = -1)
     if dropout is not None:
         p_attn = dropout(p_attn)
@@ -250,8 +250,6 @@ class MultiHeadedAttention(nn.Module):
         # 2) Apply attention on all the projected vectors in batch.
         x, self.attn = attention(query, key, value, mask=mask,
                                  dropout=self.dropout)
-
-        print('all att ', self.attn)
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous() \
