@@ -38,7 +38,7 @@ def attention(query, key, value, mask=None, dropout=None):
     if dropout is not None:
         p_attn = dropout(p_attn)
 
-    return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
+    return torch.matmul(p_attn, value), p_attn
 
 class Top_Down_Baseline(nn.Module):
     def __init__(self, baseline_model, covnet, role_emb, verb_emb, query_composer, v_att, q_net,
@@ -184,14 +184,14 @@ class MultiHeadedAttention(nn.Module):
              for l, x in zip(self.linears, (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn, mean_scores = attention(query, key, value, mask=mask,
+        x, self.attn = attention(query, key, value, mask=mask,
                                               dropout=self.dropout)
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
 
-        return self.linears[-1](x), torch.mean(self.attn, 1), mean_scores
+        return self.linears[-1](x), torch.mean(self.attn, 1)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline_model):
 
