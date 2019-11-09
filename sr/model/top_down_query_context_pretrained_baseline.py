@@ -31,6 +31,8 @@ def attention(query, key, value, mask=None, dropout=None):
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) \
              / math.sqrt(d_k)
+
+    print('scores ', scores)
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim = -1)
@@ -164,9 +166,7 @@ class Top_Down_Baseline(nn.Module):
 
         cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        neighbours, nei_att = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
-
-        print('nei_att', nei_att)
+        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
         withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
