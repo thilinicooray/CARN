@@ -174,8 +174,8 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             del role_predict, img, verb, labels
             #break
 
-    a = torch.stack(tot_score)
-    print(a.size())
+    a = torch.sum(torch.stack(tot_score).squeeze(),0)
+    print(a)
     #print(tot_score)
 
     return top1, top5, 0
