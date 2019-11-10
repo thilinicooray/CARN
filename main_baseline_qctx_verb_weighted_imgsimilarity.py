@@ -305,10 +305,23 @@ def main():
         utils.set_trainable(model.baseline_model.convnet, False)
         utils.load_net(args.qctx_model, [model.qctx_model])
         utils.set_trainable(model.qctx_model.convnet, False)
+        utils.set_trainable(model.qctx_model.baseline_model, False)
+
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
-            {'params': model.baseline_model.parameters(), 'lr': 5e-5},
-            {'params': model.qctx_model.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.role_emb.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.verb_emb.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.query_composer.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.v_att.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.q_net.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.v_net.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.role_emb.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.verb_emb.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.v_att.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.q_net.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.v_net.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.updated_query_composer.parameters(), 'lr': 5e-5},
+            {'params': model.neighbour_attention.parameters()},
             {'params': model.resize_img_flat.parameters()},
             {'params': model.reconstruct_img.parameters()},
             {'params': model.classifier.parameters()}
