@@ -333,7 +333,7 @@ class imsitu_encoder():
             all_frame_id_impact_list.append(0.5)
 
         labels = torch.stack(all_frame_id_list,0)
-        impacts = torch.stack(all_frame_id_impact_list,0)
+        impacts = torch.tensor(all_frame_id_impact_list)
 
         return labels, impacts
 
