@@ -321,7 +321,7 @@ def main():
             {'params': model.qctx_model.q_net.parameters(), 'lr': 5e-5},
             {'params': model.qctx_model.v_net.parameters(), 'lr': 5e-5},
             {'params': model.qctx_model.updated_query_composer.parameters(), 'lr': 5e-5},
-            {'params': model.neighbour_attention.parameters()},
+            {'params': model.qctx_model.neighbour_attention.parameters(), 'lr': 5e-5},
             {'params': model.resize_img_flat.parameters()},
             {'params': model.reconstruct_img.parameters()},
             {'params': model.classifier.parameters()}
