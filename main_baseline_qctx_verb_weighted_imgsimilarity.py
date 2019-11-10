@@ -307,6 +307,8 @@ def main():
         utils.set_trainable(model.qctx_model, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.resize_img_flat.parameters()},
+            {'params': model.reconstruct_img.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
