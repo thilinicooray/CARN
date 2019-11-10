@@ -51,7 +51,7 @@ class Top_Down_Baseline(nn.Module):
         baseline_out = self.baseline_model(v_org, gt_verb)
         qctx_out = self.qctx_model(v_org, gt_verb)
 
-        print(verb_role_impact.size(), verb_role_impact[:5], qctx_out.size(), baseline_out.size())
+        #print(verb_role_impact.size(), verb_role_impact[:5], qctx_out.size(), baseline_out.size())
 
         role_label_pred = qctx_out + baseline_out
 
