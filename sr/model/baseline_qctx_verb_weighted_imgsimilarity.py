@@ -45,7 +45,7 @@ class Top_Down_Baseline(nn.Module):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.qctx_model = qctx_model
-        self.covnet = covnet
+        self.convnet = covnet
         self.avg_pool = avg_pool
         self.resize_img_flat = resize_img_flat
         self.reconstruct_img = reconstruct_img
