@@ -21,6 +21,7 @@ class imsitu_encoder():
         self.vrole_question = {}
         self.all_words = json.load(open('data/allnverbsall_imsitu_words_nl2glovematching.json'))
         self.labelid2nlword = json.load(open('data/all_imsitu_words_id2nl.json'))
+        self.impact_factors = json.load(open('data/verb_role_qctx_impact.json'))
 
         self.agent_roles = ['agent', 'individuals','brancher', 'agenttype', 'gatherers', 'agents', 'teacher', 'traveler', 'mourner',
                             'seller', 'boaters', 'blocker', 'farmer']
@@ -192,6 +193,12 @@ class imsitu_encoder():
 
         return verb, labels
 
+    def encode_with_impact(self, item):
+        verb = self.verb_list.index(item['verb'])
+        labels, impact = self.get_label_ids_with_impact(item['verb'], item['frames'])
+
+        return verb, labels, impact
+
     def encode_agent(self, item):
         labels = self.get_agent_label_ids(item['verb'], item['frames'])
 
@@ -291,6 +298,44 @@ class imsitu_encoder():
         labels = torch.stack(all_frame_id_list,0)
 
         return labels
+
+    def get_label_ids_with_impact(self, verb, frames):
+        all_frame_id_list = []
+        all_frame_id_impact_list = []
+        roles = self.verb2_role_dict[verb]
+
+        for frame in frames:
+            label_id_list = []
+
+            for role in roles:
+                label = frame[role]
+                #use UNK when unseen labels come
+                if label in self.label_list:
+                    label_id = self.label_list.index(label)
+                else:
+                    label_id = self.label_list.index('UNK')
+
+                label_id_list.append(label_id)
+
+            role_padding_count = self.max_role_count - len(label_id_list)
+
+            for i in range(role_padding_count):
+                label_id_list.append(len(self.label_list))
+
+            all_frame_id_list.append(torch.tensor(label_id_list))
+
+
+        #get the impact factors
+        for role in roles:
+            all_frame_id_impact_list.append(self.impact_factors[verb + '_' + role])
+        pad = self.max_role_count - len(all_frame_id_impact_list)
+        for i in range(pad):
+            all_frame_id_impact_list.append(0.5)
+
+        labels = torch.stack(all_frame_id_list,0)
+        impacts = torch.stack(all_frame_id_impact_list,0)
+
+        return labels, impacts
 
     def get_agent_label_ids(self, verb, frames):
         agent_id_list = []

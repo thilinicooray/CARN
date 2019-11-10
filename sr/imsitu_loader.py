@@ -33,6 +33,28 @@ class imsitu_loader(data.Dataset):
         return len(self.annotations)
 
 
+class imsitu_loader_impactfactor(data.Dataset):
+    def __init__(self, img_dir, annotation_file, encoder, dictionary, transform=None):
+        self.img_dir = img_dir
+        self.annotations = annotation_file
+        self.ids = list(self.annotations.keys())
+        self.encoder = encoder
+        self.dictionary = dictionary
+        self.transform = transform
+
+    def __getitem__(self, index):
+        _id = self.ids[index]
+        ann = self.annotations[_id]
+        img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
+        img = self.transform(img)
+
+        verb, labels, impact_factor = self.encoder.encode_with_impact(ann)
+        return _id, img, verb, labels, impact_factor
+
+    def __len__(self):
+        return len(self.annotations)
+
+
 class imsitu_loader_agent(data.Dataset):
     def __init__(self, img_dir, annotation_file, encoder, dictionary, transform=None):
         self.img_dir = img_dir
