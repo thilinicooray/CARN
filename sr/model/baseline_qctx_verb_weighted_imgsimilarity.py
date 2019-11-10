@@ -72,9 +72,9 @@ class Top_Down_Baseline(nn.Module):
         sim_qctx = torch.bmm(recon_img_qctx.view(recon_img_qctx.size(0), 1, recon_img_qctx.size(1))
                                  , img_feat_flat.view(img_feat_flat.size(0), img_feat_flat.size(1), 1))
 
-        print(sim_baseline.size(), sim_qctx.size())
+        print(sim_baseline.size(), sim_qctx.size(), sim_baseline, sim_qctx)
 
-        impact_factor = F.softmax(torch.cat([sim_qctx,sim_baseline ]), dim = -1)
+        impact_factor = F.softmax(torch.cat([sim_qctx.squeeze(-1),sim_baseline.squeeze(-1) ],-1), dim = -1)
 
         print('impact_factor ', impact_factor.size(), impact_factor[:5])
 
