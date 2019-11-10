@@ -27,21 +27,19 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
     for epoch in range(max_epoch):
 
-        for i, (_, img, verb, labels, verb_role_impact) in enumerate(train_loader):
+        for i, (_, img, verb, labels) in enumerate(train_loader):
             total_steps += 1
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
                 labels = torch.autograd.Variable(labels.cuda())
-                verb_role_impact = torch.autograd.Variable(verb_role_impact.cuda())
             else:
                 img = torch.autograd.Variable(img)
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
-                verb_role_impact = torch.autograd.Variable(verb_role_impact)
 
-            role_predict = pmodel(img, verb, verb_role_impact)
+            role_predict = pmodel(img, verb)
             loss = model.calculate_loss(verb, role_predict, labels)
 
             loss.backward()
@@ -104,20 +102,18 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
-        for i, (img_id, img, verb, labels, verb_role_impact) in enumerate(dev_loader):
+        for i, (img_id, img, verb, labels) in enumerate(dev_loader):
 
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
                 labels = torch.autograd.Variable(labels.cuda())
-                verb_role_impact = torch.autograd.Variable(verb_role_impact.cuda())
             else:
                 img = torch.autograd.Variable(img)
                 verb = torch.autograd.Variable(verb)
                 labels = torch.autograd.Variable(labels)
-                verb_role_impact = torch.autograd.Variable(verb_role_impact)
 
-            role_predict = model(img, verb, verb_role_impact)
+            role_predict = model(img, verb)
 
             if write_to_file:
                 top1.add_point_noun_log(img_id, verb, role_predict, labels)

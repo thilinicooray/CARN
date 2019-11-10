@@ -260,7 +260,7 @@ def main():
 
     encoder = imsitu_encoder.imsitu_encoder(train_set)
 
-    train_set = imsitu_loader.imsitu_loader(imgset_folder, train_set, encoder,'train', encoder.train_transform)
+    train_set = imsitu_loader.imsitu_loader_impactfactor(imgset_folder, train_set, encoder,'train', encoder.train_transform)
 
     constructor = 'build_top_down_baseline'
     baseline = getattr(top_down_baseline, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
@@ -276,11 +276,11 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     dev_set = json.load(open(dataset_folder + '/' + args.dev_file))
-    dev_set = imsitu_loader.imsitu_loader(imgset_folder, dev_set, encoder, 'val', encoder.dev_transform)
+    dev_set = imsitu_loader.imsitu_loader_impactfactor(imgset_folder, dev_set, encoder, 'val', encoder.dev_transform)
     dev_loader = torch.utils.data.DataLoader(dev_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     test_set = json.load(open(dataset_folder + '/' + args.test_file))
-    test_set = imsitu_loader.imsitu_loader(imgset_folder, test_set, encoder, 'test', encoder.dev_transform)
+    test_set = imsitu_loader.imsitu_loader_impactfactor(imgset_folder, test_set, encoder, 'test', encoder.dev_transform)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
     if not os.path.exists(args.output_dir):

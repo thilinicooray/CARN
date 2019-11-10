@@ -52,7 +52,7 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
 
-    def forward(self, v_org, gt_verb, verb_role_impact):
+    def forward(self, v_org, gt_verb):
 
         baseline_out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         baseline_out_sim = baseline_out.contiguous().view(v_org.size(0), -1)
