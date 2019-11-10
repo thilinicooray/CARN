@@ -22,6 +22,7 @@ class imsitu_encoder():
         self.all_words = json.load(open('data/allnverbsall_imsitu_words_nl2glovematching.json'))
         self.labelid2nlword = json.load(open('data/all_imsitu_words_id2nl.json'))
         self.impact_factors = json.load(open('data/verb_role_qctx_impact.json'))
+        self.verb_impact_factors = json.load(open('data/verb_impact.json'))
 
         self.agent_roles = ['agent', 'individuals','brancher', 'agenttype', 'gatherers', 'agents', 'teacher', 'traveler', 'mourner',
                             'seller', 'boaters', 'blocker', 'farmer']
@@ -327,10 +328,10 @@ class imsitu_encoder():
 
         #get the impact factors
         for role in roles:
-            all_frame_id_impact_list.append(self.impact_factors[verb + '_' + role])
+            all_frame_id_impact_list.append(self.verb_impact_factors[verb])
         pad = self.max_role_count - len(all_frame_id_impact_list)
         for i in range(pad):
-            all_frame_id_impact_list.append(0.5)
+            all_frame_id_impact_list.append(self.verb_impact_factors[verb])
 
         labels = torch.stack(all_frame_id_list,0)
         impacts = torch.tensor(all_frame_id_impact_list)
