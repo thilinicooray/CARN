@@ -302,11 +302,13 @@ def main():
         model_name = 'train_full'
         utils.set_trainable(model, True)
         utils.load_net(args.baseline_model, [model.baseline_model])
-        utils.set_trainable(model.baseline_model, False)
+        #utils.set_trainable(model.baseline_model, False)
         utils.load_net(args.qctx_model, [model.qctx_model])
-        utils.set_trainable(model.qctx_model, False)
+        #utils.set_trainable(model.qctx_model, False)
         optimizer = torch.optim.Adamax([
             {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.parameters(), 'lr': 5e-5},
             {'params': model.resize_img_flat.parameters()},
             {'params': model.reconstruct_img.parameters()},
             {'params': model.classifier.parameters()}
