@@ -12,7 +12,7 @@ import copy
 
 from ..lib.attention import Attention
 from ..lib.classifier import SimpleClassifier
-from ..lib.fc import FCNet
+from ..lib.fc import FCNet, FCNet_relu
 import torchvision as tv
 from ..utils import cross_entropy_loss
 
@@ -115,7 +115,7 @@ def build_baseline_qctx_joint(baseline_model, qctx_model, num_ans_classes, encod
     covnet = vgg16_modified()
     avg_pool = nn.AdaptiveAvgPool2d(1)
     resize_img_flat = nn.Linear(img_embedding_size, 1024)
-    reconstruct_img = FCNet([hidden_size*6, hidden_size])
+    reconstruct_img = FCNet_relu([hidden_size*6, hidden_size*2, hidden_size])
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
