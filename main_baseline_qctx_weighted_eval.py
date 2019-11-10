@@ -17,7 +17,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     with torch.no_grad():
         mx = len(dev_loader)
         for i, (img_id, img, verb, labels, verb_role_impact) in enumerate(dev_loader):
-            print("{}/{} batches\r".format(i+1,mx))
+            #print("{}/{} batches\r".format(i+1,mx))
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
                 verb = torch.autograd.Variable(verb.cuda())

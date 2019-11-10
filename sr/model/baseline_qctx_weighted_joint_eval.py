@@ -54,9 +54,8 @@ class Top_Down_Baseline(nn.Module):
         #print(verb_role_impact.size(), verb_role_impact[:5], qctx_out.size(), baseline_out.size())
         q_impact = verb_role_impact.unsqueeze(-1)
         b_impact = torch.ones(q_impact.size(0), q_impact.size(1), 1).cuda() - q_impact
-        print(q_impact[:5], b_impact[:5])
 
-        role_label_pred = qctx_out + baseline_out
+        role_label_pred = q_impact * qctx_out + b_impact * baseline_out
 
         #role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
