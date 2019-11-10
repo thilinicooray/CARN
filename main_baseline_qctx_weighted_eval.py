@@ -15,9 +15,9 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
-
+        mx = len(dev_loader)
         for i, (img_id, img, verb, labels, verb_role_impact) in enumerate(dev_loader):
-
+            print("{}/{} batches\r".format(i+1,mx))
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
@@ -180,8 +180,8 @@ def main():
         fail_val_all = top1.value_all_dict
         pass_val_dict = top1.vall_all_correct
 
-        with open(args.model_saving_name+'_role_pred_data.json', 'w') as fp:
-            json.dump(role_dict, fp, indent=4)
+        '''with open(args.model_saving_name+'_role_pred_data.json', 'w') as fp:
+            json.dump(role_dict, fp, indent=4)'''
 
         '''with open(args.model_saving_name+'_fail_val_all.json', 'w') as fp:
             json.dump(fail_val_all, fp, indent=4)

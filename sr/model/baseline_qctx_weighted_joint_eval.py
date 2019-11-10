@@ -52,6 +52,9 @@ class Top_Down_Baseline(nn.Module):
         qctx_out = self.qctx_model(v_org, gt_verb)
 
         #print(verb_role_impact.size(), verb_role_impact[:5], qctx_out.size(), baseline_out.size())
+        q_impact = verb_role_impact.unsqueeze(-1)
+        b_impact = torch.ones(q_impact.size(0), q_impact.size(1), 1).cuda() - q_impact
+        print(q_impact[:5], b_impact[:5])
 
         role_label_pred = qctx_out + baseline_out
 
