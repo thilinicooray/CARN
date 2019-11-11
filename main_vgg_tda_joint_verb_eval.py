@@ -123,7 +123,7 @@ def main():
 
 
     constructor = 'build_top_down_baseline_verb'
-    tda_model = getattr(top_down_verb_pred_agentplace, constructor)((encoder.get_num_labels(),  encoder.get_num_verbs(), vgg_model))
+    tda_model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), vgg_model)
 
 
 
