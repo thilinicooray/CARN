@@ -48,8 +48,8 @@ class Top_Down_Baseline(nn.Module):
 
     def forward(self, v_org, gt_verb):
 
-        vgg_out = self.vgg_model(v_org, gt_verb)
-        tda_out = self.tda_model(v_org, gt_verb)
+        vgg_out = self.vgg_model(v_org)
+        tda_out = self.tda_model(v_org, None)
 
         #print(verb_role_impact.size(), verb_role_impact[:5], qctx_out.size(), baseline_out.size())
         '''q_impact = verb_role_impact.unsqueeze(-1)
