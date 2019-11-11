@@ -37,7 +37,6 @@ def load_net(fname, net_list, prefix_list = None):
                 if need_modification:
                     k = prefix_list[i] + '.' + k
 
-                print(k)
                 if k in dict:
                     param = torch.from_numpy(np.asarray(dict[k].cpu()))
                     v.copy_(param)
