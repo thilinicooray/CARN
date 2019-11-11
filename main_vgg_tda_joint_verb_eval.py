@@ -3,7 +3,7 @@ import json
 import os
 
 from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_encoder
-from sr.model import vgg_tda_joint_verb_eval, top_down_verb_pred_agentplace, single_role_vgg_classifier
+from sr.model import vgg_tda_joint_verb_eval, top_down_verb_pred_agentplace, single_role_vgg_classifier, top_down_baseline_addemb
 
 
 
@@ -121,9 +121,11 @@ def main():
     constructor = 'build_single_role_classifier'
     vgg_model = getattr(single_role_vgg_classifier, constructor)(len(encoder.verb_list))
 
+    constructor = 'build_top_down_baseline'
+    role_module = getattr(top_down_baseline_addemb, constructor)(encoder.get_num_roles(),encoder.get_num_verbs(), encoder.get_num_labels(), encoder)
 
     constructor = 'build_top_down_baseline_verb'
-    tda_model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), vgg_model)
+    tda_model = getattr(top_down_verb_pred_agentplace, constructor)(encoder.get_num_labels(),  encoder.get_num_verbs(), role_module)
 
 
 
@@ -152,7 +154,9 @@ def main():
 
     #load models
     utils.load_net(args.vgg_model, [model.vgg_model])
+    print('successfully loaded vgg_model!')
     utils.load_net(args.tda_model, [model.tda_model])
+    print('successfully loaded tda_model!')
 
 
 

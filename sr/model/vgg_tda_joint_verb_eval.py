@@ -46,7 +46,7 @@ class Top_Down_Baseline(nn.Module):
         self.vgg_model = vgg_model
         self.tda_model = tda_model
 
-    def forward(self, v_org, gt_verb, verb_role_impact):
+    def forward(self, v_org, gt_verb):
 
         vgg_out = self.vgg_model(v_org, gt_verb)
         tda_out = self.tda_model(v_org, gt_verb)
