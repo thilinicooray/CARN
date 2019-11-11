@@ -151,8 +151,8 @@ def main():
 
 
     #load models
-    utils.load_net(args.baseline_model, [model.baseline_model])
-    utils.load_net(args.qctx_model, [model.qctx_model])
+    utils.load_net(args.vgg_model, [model.vgg_model])
+    utils.load_net(args.tda_model, [model.tda_model])
 
 
 
