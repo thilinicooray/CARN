@@ -41,14 +41,13 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, qctx_model, avg_pool, resize_img_flat, reconstruct_img, classifier, encoder):
+    def __init__(self, baseline_model, qctx_model, avg_pool, resize_img_flat, reconstruct_img, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.qctx_model = qctx_model
         self.avg_pool = avg_pool
         self.resize_img_flat = resize_img_flat
         self.reconstruct_img = reconstruct_img
-        self.classifier = classifier
         self.encoder = encoder
 
     def forward(self, v_org, gt_verb):
@@ -58,7 +57,7 @@ class Top_Down_Baseline(nn.Module):
         qctx_out = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
         qctx_out_sim = qctx_out.contiguous().view(v_org.size(0), -1)
 
-        img_features = self.baseline_model.convnet(v_org)
+        img_features = self.qctx_model.convnet(v_org)
         img_feat_flat = self.avg_pool(img_features)
         img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
 
@@ -83,7 +82,7 @@ class Top_Down_Baseline(nn.Module):
 
         final_rep = q_impact * qctx_out.view(v_org.size(0)* self.encoder.max_role_count, -1) + b_impact * baseline_out.view(v_org.size(0)* self.encoder.max_role_count, -1)
 
-        final_rep = self.classifier(final_rep)
+        final_rep = self.qctx_model.classifier(final_rep)
 
         role_label_pred = final_rep.contiguous().view(v_org.size(0), self.encoder.max_role_count, -1)
 
@@ -116,9 +115,6 @@ def build_baseline_qctx_joint(baseline_model, qctx_model, num_ans_classes, encod
     #reconstruct_img = FCNet_relu([hidden_size*6, hidden_size*2, hidden_size])
     reconstruct_img = FCNet([hidden_size*6, hidden_size])
 
-    classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
-
-    return Top_Down_Baseline(baseline_model, qctx_model, avg_pool, resize_img_flat, reconstruct_img, classifier, encoder)
+    return Top_Down_Baseline(baseline_model, qctx_model, avg_pool, resize_img_flat, reconstruct_img, encoder)
 
 

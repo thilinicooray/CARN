@@ -323,7 +323,7 @@ def main():
             {'params': model.qctx_model.neighbour_attention.parameters(), 'lr': 5e-5},
             {'params': model.resize_img_flat.parameters()},
             {'params': model.reconstruct_img.parameters()},
-            {'params': model.classifier.parameters()}
+            {'params': model.qctx_model.classifier.parameters(), 'lr': 5e-5}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
