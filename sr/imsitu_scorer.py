@@ -381,7 +381,6 @@ class imsitu_scorer():
             current_id = img_id[i]
             verb_pred = verb_predict[i]
             gt_verb = gt_verbs[i]
-            print(gt_verb)
             label_pred = labels_predict[i]
             gt_label = gt_labels[i]
 
