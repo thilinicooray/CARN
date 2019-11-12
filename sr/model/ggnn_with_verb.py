@@ -190,7 +190,7 @@ class GGNN_Baseline(nn.Module):
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-        return verb_predict, role_pred_topk
+        return verbs, role_pred_topk
 
     def calculate_loss(self, verb_predict, gt_verbs, role_label_pred, gt_labels):
 
