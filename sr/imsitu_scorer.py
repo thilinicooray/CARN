@@ -49,13 +49,7 @@ class imsitu_scorer():
 
             all_found = True
             pred_list = []
-            for k in range(0, self.encoder.get_max_role_count()):
-                role_id = role_set[k]
-                if role_id == len(self.encoder.role_list):
-                    continue
-                current_role = self.encoder.role_list[role_id]
-                if current_role not in gt_role_list:
-                    continue
+            for k in range(gt_role_count):
 
                 label_id = torch.max(label_pred[k],0)[1]
                 pred_list.append(label_id.item())
@@ -354,13 +348,7 @@ class imsitu_scorer():
 
             all_found = True
             pred_list = []
-            for k in range(0, self.encoder.get_max_role_count()):
-                role_id = role_set[k]
-                if role_id == len(self.encoder.role_list):
-                    continue
-                current_role = self.encoder.role_list[role_id]
-                if current_role not in gt_role_list:
-                    continue
+            for k in range(gt_role_count):
 
                 label_id = torch.max(label_pred[k],0)[1]
                 pred_list.append(label_id.item())
@@ -383,6 +371,84 @@ class imsitu_scorer():
             if all_found: score_card["value-all*"] += 1
 
             self.score_cards.append(new_card)
+
+    def add_point_eval5_log_sorted(self, img_id, verb_predict, gt_verbs, labels_predict, gt_labels):
+        #encoded predictions should be batch x verbs x values #assumes the are the same order as the references
+        #encoded reference should be batch x 1+ references*roles,values (sorted)
+
+        batch_size = verb_predict.size()[0]
+        for i in range(batch_size):
+            current_id = img_id[i]
+            verb_pred = verb_predict[i]
+            gt_verb = gt_verbs[i]
+            label_pred = labels_predict[i]
+            gt_label = gt_labels[i]
+
+            sorted_idx = verb_pred
+
+            gt_v = gt_verb
+            gt_role_set = self.encoder.get_role_ids(gt_v)
+
+
+            new_card = {"verb":0.0, "value":0.0, "value*":0.0, "n_value":0.0, "value-all":0.0, "value-all*":0.0}
+
+            if self.write_to_file:
+                self.all_res[current_id] = {'gtv': gt_verb.item(),'found':-1, 'verbs':sorted_idx[:5].tolist(),
+                                            'pred_role_labels':[]}
+
+
+            score_card = new_card
+
+            verb_found = (torch.sum(sorted_idx[0:self.topk] == gt_v) == 1)
+            if verb_found:
+                score_card["verb"] += 1
+                if self.write_to_file:
+                    self.all_res[current_id]['found'] = 0
+
+            if verb_found and self.topk == 5:
+                gt_idx = 0
+                for cur_idx in range(0,self.topk):
+                    if sorted_idx[cur_idx] == gt_v:
+                        gt_idx = cur_idx
+                        break
+                label_pred = label_pred[self.encoder.max_role_count*gt_idx : self.encoder.max_role_count*(gt_idx+1)]
+
+            else:
+                label_pred = label_pred[:self.encoder.max_role_count]
+
+            gt_role_count = self.encoder.get_role_count(gt_v)
+            gt_role_list = self.encoder.verb2_role_dict[self.encoder.verb_list[gt_v]]
+            score_card["n_value"] += gt_role_count
+
+            all_found = True
+            for k in range(0, gt_role_count):
+
+                label_id = label_pred[k]
+
+                found = False
+                for r in range(0,self.nref):
+                    gt_label_id = gt_label[r][k]
+
+                    if label_id == gt_label_id:
+                        found = True
+                        break
+                if not found: all_found = False
+
+                #both verb and at least one val found
+                if found and verb_found: score_card["value"] += 1
+                #at least one val found
+                if found: score_card["value*"] += 1
+
+            #both verb and all values found
+            score_card["value*"] /= gt_role_count
+            score_card["value"] /= gt_role_count
+
+            if all_found and verb_found: score_card["value-all"] += 1
+
+            #all values found
+            if all_found: score_card["value-all*"] += 1
+
+            self.score_cards.append(score_card)
 
     def get_average_results(self):
         #average across score cards for the entire frame.
