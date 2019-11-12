@@ -15,7 +15,7 @@ class vgg16_modified(nn.Module):
         self.vgg_features = vgg.features
         self.num_ans_classes = num_classes
 
-        num_features = vgg.classifier[3].in_features
+        '''num_features = vgg.classifier[3].in_features
         features = list(vgg.classifier.children())[:-4]
 
         new_classifier = nn.Sequential(
@@ -27,7 +27,13 @@ class vgg16_modified(nn.Module):
         )
 
         features.extend(new_classifier)
+        self.classifier = nn.Sequential(*features)'''
+
+        num_features = vgg.classifier[6].in_features
+        features = list(vgg.classifier.children())[:-1] # Remove last layer
+        features.extend([nn.Linear(num_features, len(num_classes))]) # Add our layer with 4 outputs
         self.classifier = nn.Sequential(*features)
+
 
     def forward(self,x):
         features = self.vgg_features(x)
