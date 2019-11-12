@@ -16,7 +16,9 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
 
+        mx = len(dev_loader)
         for i, (img_id, img, verb, labels) in enumerate(dev_loader):
+            print("{}/{} batches\r".format(i+1,mx)),
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
 
