@@ -340,7 +340,7 @@ class imsitu_scorer():
             if verb_found:
                 score_card["verb"] += 1
 
-            verb_found = False
+            #verb_found = False
 
             gt_role_count = self.encoder.get_role_count(gt_v)
             gt_role_list = self.encoder.verb2_role_dict[self.encoder.verb_list[gt_v]]

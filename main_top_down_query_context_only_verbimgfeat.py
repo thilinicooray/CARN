@@ -53,8 +53,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
             train_loss += loss.item()
 
-            top1.add_point_both(verb_pred, verb, role_predict, labels)
-            top5.add_point_both(verb_pred, verb, role_predict, labels)
+            top1.add_point_both_wrong(verb_pred, verb, role_predict, labels)
+            top5.add_point_both_wrong(verb_pred, verb, role_predict, labels)
 
 
             if total_steps % print_freq == 0:
@@ -120,11 +120,11 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             role_predict, verb_pred, verb_hidden_rep = model(img, img_feat, verb)
 
             if write_to_file:
-                top1.add_point_both(verb_pred, verb, role_predict, labels)
-                top5.add_point_noun_log(verb_pred, verb, role_predict, labels)
+                top1.add_point_both_wrong(verb_pred, verb, role_predict, labels)
+                top5.add_point_both_wrong(verb_pred, verb, role_predict, labels)
             else:
-                top1.add_point_both(verb_pred, verb, role_predict, labels)
-                top5.add_point_both(verb_pred, verb, role_predict, labels)
+                top1.add_point_both_wrong(verb_pred, verb, role_predict, labels)
+                top5.add_point_both_wrong(verb_pred, verb, role_predict, labels)
 
             del role_predict, img, verb, labels
             #break
