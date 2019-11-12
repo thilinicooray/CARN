@@ -35,15 +35,15 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
     imgids = set()
     h_flat = h5py.File(data_file_flat[split], 'w')
     img_features_flat = h_flat.create_dataset(
-        'image_features', (dataset_size, 1024), 'f')
+        'image_features', (dataset_size, 4096), 'f')
 
-    h_flat_relu = h5py.File(data_file_flat_relu[split], 'w')
+    '''h_flat_relu = h5py.File(data_file_flat_relu[split], 'w')
     img_features_flat_relu = h_flat_relu.create_dataset(
         'image_features', (dataset_size, 1024), 'f')
 
     h_grid = h5py.File(data_file_grid[split], 'w')
     img_features_grid = h_grid.create_dataset(
-        'image_features', (dataset_size, 1), 'f')
+        'image_features', (dataset_size, 1), 'f')'''
 
     counter = 0
     indices = {}
@@ -58,17 +58,14 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
                 img = torch.autograd.Variable(img)
 
             org_features = model.vgg_features(img)
-            batch_size, n_channel, conv_h, conv_w = org_features.size()
+            '''batch_size, n_channel, conv_h, conv_w = org_features.size()
 
             grid_features = org_features.view(batch_size, -1, conv_h* conv_w)
-            grid_features = grid_features.permute(0, 2, 1)
+            grid_features = grid_features.permute(0, 2, 1)'''
 
-            flat_features = model.classifier[:-3](org_features.view(-1, 512*7*7))
-            flat_features_relu = model.classifier[:-2](org_features.view(-1, 512*7*7))
-            pred_verb = torch.max(model.classifier(org_features.view(-1, 512*7*7)),-1)[1]
-
-            if i==0:
-                print('pred_verb ', pred_verb)
+            flat_features = model.classifier[:-1](org_features.view(-1, 512*7*7))
+            #flat_features_relu = model.classifier[:-2](org_features.view(-1, 512*7*7))
+            #pred_verb = torch.max(model.classifier(org_features.view(-1, 512*7*7)),-1)[1]
 
             batch_size = img.size(0)
 
@@ -77,8 +74,8 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
                 imgids.add(image_id)
                 indices[image_id] = counter
                 img_features_flat[counter, :] = flat_features[j].cpu().numpy()
-                img_features_flat_relu[counter, :] = flat_features_relu[j].cpu().numpy()
-                img_features_grid[counter] = pred_verb[j].cpu().numpy()
+                #img_features_flat_relu[counter, :] = flat_features_relu[j].cpu().numpy()
+                #img_features_grid[counter] = pred_verb[j].cpu().numpy()
                 counter += 1
 
     cPickle.dump(imgids, open(ids_file[split],'wb'))
@@ -88,8 +85,8 @@ def extract_features(model, split, data_loader, gpu_mode, dataset_size):
 
     cPickle.dump(indices, open(indices_file[split], 'wb'))
     h_flat.close()
-    h_flat_relu.close()
-    h_grid.close()
+    #h_flat_relu.close()
+    #h_grid.close()
     print("done!")
 
 
