@@ -125,9 +125,9 @@ def main():
 
 
     #load models
-    utils.load_net(args.vgg_model, [model.vgg_model])
+    utils.load_net(args.vgg_verb_model, [model.vgg_model])
     print('successfully loaded vgg_verb_model!')
-    utils.load_net(args.vgg_model, [model.vgg_model])
+    utils.load_net(args.tda_verb_model, [model.tda_model])
     print('successfully loaded tda_verb_model!')
     utils.load_net(args.caq_model, [model.caq_model])
     print('successfully loaded caq_model!')
