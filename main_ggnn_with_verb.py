@@ -203,11 +203,13 @@ def main():
         model_name = 'train_full'
         utils.set_trainable(model, True)
         optimizer = torch.optim.Adamax([
-            {'params': model.convnet.parameters(), 'lr': 5e-5},
+            {'params': model.covnet_role.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
             {'params': model.ggnn.parameters()},
-            {'params': model.classifier.parameters()}
+            {'params': model.verb_state_proj.parameters()},
+            {'params': model.output_verb.parameters()},
+            {'params': model.output_role.parameters()}
         ], lr=1e-3)
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
