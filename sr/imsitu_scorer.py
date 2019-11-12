@@ -387,7 +387,6 @@ class imsitu_scorer():
             sorted_idx = verb_pred
 
             gt_v = gt_verb
-            gt_role_set = self.encoder.get_role_ids(gt_v)
 
 
             new_card = {"verb":0.0, "value":0.0, "value*":0.0, "n_value":0.0, "value-all":0.0, "value-all*":0.0}
