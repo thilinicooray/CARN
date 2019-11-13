@@ -56,6 +56,7 @@ class Top_Down_Baseline(nn.Module):
         self.classifier = classifier
         self.encoder = encoder
         self.n_iter = n_iter
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
 
     def forward(self, v_org, gt_verb):
 
@@ -65,6 +66,12 @@ class Top_Down_Baseline(nn.Module):
 
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
+
+        img_feat_flat = self.avg_pool(img_features)
+        img_feat_flat = img_feat_flat.expand(self.encoder.max_role_count, img_feat_flat.size(0), img_feat_flat.size(1))
+
+        img_feat_flat = img_feat_flat.transpose(0,1)
+        img_feat_flat = img_feat_flat.contiguous().view(batch_size * self.encoder.max_role_count, -1)
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
@@ -95,6 +102,7 @@ class Top_Down_Baseline(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
 
         all = None
+        all_ctx = None
 
         out = baseline_out
 
@@ -126,15 +134,24 @@ class Top_Down_Baseline(nn.Module):
             mfb_l2 = F.normalize(mfb_sign_sqrt)
             out = mfb_l2
 
-            '''if iter == 0:
+            if iter == 0:
                 all = out.unsqueeze(1)
+                all_ctx = withctx.unsqueeze(1)
             else:
                 all = torch.cat((all.clone(), out.unsqueeze(1)), 1)
+                all_ctx = torch.cat((all_ctx.clone(), withctx.unsqueeze(1)), 1)
 
-                all_att = self.iter_att(all.contiguous().view(-1, all.size(-1)))
+                img_feat_flat_iter = img_feat_flat.expand(all_ctx.size(1), img_feat_flat.size(0), img_feat_flat.size(1))
+
+                img_feat_flat_iter = img_feat_flat_iter.transpose(0,1)
+                img_feat_flat_iter = img_feat_flat_iter.contiguous().view(batch_size * all_ctx.size(1), -1)
+
+                att_calc_statment = torch.cat([all_ctx.contiguous().view(-1, all_ctx.size(-1)), all.contiguous().view(-1, all.size(-1)), img_feat_flat_iter], -1)
+
+                all_att = self.iter_att(att_calc_statment)
                 all_att = F.softmax(all_att.contiguous().view(batch_size* self.encoder.max_role_count, -1, 1), dim = 1)
                 attended_all = all_att * all
-                out = torch.sum(attended_all, 1)'''
+                out = torch.sum(attended_all, 1)
 
         logits = self.classifier(out)
 
@@ -305,7 +322,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     Dropout_C = nn.Dropout(0.1)
 
-    iter_att = nn.Linear(hidden_size, 1)
+    iter_att = FCNet([hidden_size*2 + img_embedding_size, 1])
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
