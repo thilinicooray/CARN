@@ -67,7 +67,7 @@ class Top_Down_Baseline(nn.Module):
         img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
-        img_feat_flat = self.avg_pool(img_features)
+        img_feat_flat = self.avg_pool(img_features).squeeze()
         img_feat_flat = img_feat_flat.expand(self.encoder.max_role_count, img_feat_flat.size(0), img_feat_flat.size(1))
 
         img_feat_flat = img_feat_flat.transpose(0,1)
