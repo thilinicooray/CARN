@@ -146,6 +146,8 @@ class Top_Down_Baseline(nn.Module):
                 img_feat_flat_iter = img_feat_flat_iter.transpose(0,1)
                 img_feat_flat_iter = img_feat_flat_iter.contiguous().view(batch_size * all_ctx.size(1), -1)
 
+                print(all_ctx.contiguous().view(-1, all_ctx.size(-1)).size(), all.contiguous().view(-1, all.size(-1)).size(), img_feat_flat_iter.size())
+
                 att_calc_statment = torch.cat([all_ctx.contiguous().view(-1, all_ctx.size(-1)), all.contiguous().view(-1, all.size(-1)), img_feat_flat_iter], -1)
 
                 all_att = self.iter_att(att_calc_statment)
