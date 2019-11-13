@@ -148,7 +148,7 @@ class Top_Down_Baseline(nn.Module):
 
                 att_calc_statment = torch.cat([all_ctx.contiguous().view(-1, all_ctx.size(-1)), all.contiguous().view(-1, all.size(-1)), img_feat_flat_iter], -1)
 
-                all_att = self.iter_att(att_calc_statment)
+                all_att = self.Dropout_C(self.iter_att(att_calc_statment))
                 all_att = F.softmax(all_att.contiguous().view(batch_size* self.encoder.max_role_count, -1, 1), dim = 1)
                 attended_all = all_att * all
                 out = torch.sum(attended_all, 1)
