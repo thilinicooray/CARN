@@ -138,6 +138,81 @@ class Top_Down_Baseline(nn.Module):
 
         return role_label_pred
 
+    def forward_hiddenrep(self, v_org, gt_verb):
+
+        baseline_out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
+
+        n_heads = 1
+
+        img_features = self.convnet(v_org)
+        batch_size, n_channel, conv_h, conv_w = img_features.size()
+
+        img_org = img_features.view(batch_size, -1, conv_h* conv_w)
+        v = img_org.permute(0, 2, 1)
+
+        batch_size = v.size(0)
+
+        role_idx = self.encoder.get_role_ids_batch(gt_verb)
+        # mask out non-existing roles from (max_role x max_role) adj. matrix
+        mask = self.encoder.get_adj_matrix_noself(gt_verb)
+
+        if torch.cuda.is_available():
+            role_idx = role_idx.to(torch.device('cuda'))
+            mask = mask.to(torch.device('cuda'))
+
+        img = v
+
+        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
+
+        img = img.transpose(0,1)
+        img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
+
+        verb_embd = self.verb_emb(gt_verb)
+        role_embd = self.role_emb(role_idx)
+
+        verb_embed_expand = verb_embd.expand(self.encoder.max_role_count, verb_embd.size(0), verb_embd.size(1))
+        verb_embed_expand = verb_embed_expand.transpose(0,1)
+        concat_query = torch.cat([ verb_embed_expand, role_embd], -1)
+        role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
+        q_emb = self.query_composer(role_verb_embd)
+
+        cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+
+        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+
+        withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
+
+
+        withctx_expand = withctx.expand(img.size(1), withctx.size(0), withctx.size(1))
+        withctx_expand = withctx_expand.transpose(0,1)
+        # combine neighbour information with all regions of the image
+        added_img = torch.cat([withctx_expand, img], -1)
+        added_img = added_img.contiguous().view(-1, added_img.size(-1))
+        # use a gating mechanism to decide how much information is necessary from each region
+        # based on context information to answer current query
+        added_img = torch.sigmoid(self.Dropout_C(self.resize_ctx(added_img)))
+        added_img = added_img.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, added_img.size(-1))
+        # update regions using the gate
+        updated_img = added_img * img
+
+        att = self.v_att(updated_img, q_emb)
+        v_emb = (att * updated_img).sum(1)
+        v_repr = self.v_net(v_emb)
+        q_repr = self.q_net(q_emb)
+
+        #out = q_repr * v_repr
+        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+
+        mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
+
+        mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+        mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
+        mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
+        mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
+        mfb_l2 = F.normalize(mfb_sign_sqrt)
+        out = mfb_l2
+
+        return out
 
     def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
