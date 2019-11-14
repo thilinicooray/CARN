@@ -239,11 +239,11 @@ class Top_Down_Baseline(nn.Module):
 
         att = self.v_att(img, updated_q_emb)
 
-        '''if show_att:
+        if show_att:
             #print(' analysis ')
             att1 = att.contiguous().view(batch_size,6, 7,7)
 
-            print(att1[0])'''
+            print(att1[0])
 
         v_emb = (att * img).sum(1)
         v_repr = self.v_net(v_emb)
@@ -319,7 +319,7 @@ class MultiHeadedAttention(nn.Module):
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
 
-        return self.linears[-1](x), torch.mean(self.attn, 1)
+        return self.linears[-1](x), torch.mean(self.attn, 1), mean_scores
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline_model):
 
