@@ -6,7 +6,7 @@ from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_e
 from sr.model import caq_cair_joint, top_down_query_context_pretrained_baseline, top_down_image_context_pretrained_baseline, top_down_baseline
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -123,7 +123,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 top5.add_point_noun(verb, role_predict, labels)
 
             del role_predict, img, verb, labels
-            break
+            #break
 
     return top1, top5, 0
 
@@ -301,8 +301,12 @@ def main():
         utils.set_trainable(model, False)
         utils.load_net(args.caq_model, [model.caq_model])
         utils.set_trainable(model.caq_model, False)
+        utils.set_trainable(model.caq_model.q_net, True)
+        utils.set_trainable(model.caq_model.v_net, True)
         utils.set_trainable(model.caq_model.classifier, True)
         optimizer = torch.optim.Adamax([
+            {'params': model.caq_model.q_net.parameters(), 'lr': 5e-5},
+            {'params': model.caq_model.v_net.parameters(), 'lr': 5e-5},
             {'params': model.caq_model.classifier.parameters(), 'lr': 5e-5},
             {'params': model.flatten_img.parameters()},
             {'params': model.reconstruct_img.parameters()},
