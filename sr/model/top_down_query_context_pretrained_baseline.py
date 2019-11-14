@@ -319,7 +319,7 @@ class MultiHeadedAttention(nn.Module):
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
 
-        return self.linears[-1](x), torch.mean(self.attn, 1), mean_scores
+        return self.linears[-1](x), torch.mean(self.attn, 1)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline_model):
 
