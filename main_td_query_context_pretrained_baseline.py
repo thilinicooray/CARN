@@ -130,7 +130,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list = ['hanging_43.jpg', 'tuning_158.jpg', 'molding_126.jpg', 'ducking_89.jpg']
+    img_id_list = ['hanging_43.jpg', 'tuning_158.jpg', 'sniffing_396.jpg', 'ducking_89.jpg']
     #verb_name = 'sharpening'
 
     tot_score = []
