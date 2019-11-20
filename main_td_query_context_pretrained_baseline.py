@@ -131,7 +131,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
     img_id_list =  ['interviewing_276.jpg', 'tuning_158.jpg', 'weeding_71.jpg', 'ducking_89.jpg', 'massaging_100.jpg', 'rubbing_39.jpg']
-    verb_name = 'assembling'
+    verb_name = 'weeding'
 
     tot_score = []
 
@@ -144,8 +144,8 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
             show_att = False
-            if img_id[0] in img_id_list:
-                print('handling ', img_id[0])
+            if verb_name in img_id[0]:
+                #print('handling ', img_id[0])
                 show_att = True
             else:
                 continue
@@ -175,7 +175,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             #break
 
     a = torch.sum(torch.stack(tot_score).squeeze(),0)
-    #print(a)
+    print(a)
     #print(tot_score)
 
     return top1, top5, 0
