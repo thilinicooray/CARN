@@ -134,7 +134,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                     'clenching_25.jpg', 'leading_176.jpg', 'covering_95.jpg', 'fixing_271.jpg', 'sniffing_377.jpg',
                     'buying_143.jpg', 'begging_78.jpg', 'stroking_183.jpg', 'floating_112.jpg', 'licking_240.jpg',
                     'chewing_221.jpg', 'licking_302.jpg']
-    verb_name = 'injecting'
+    verb_name = 'microwaving'
     verb_name1 = 'stripping'
 
     tot_score = []
