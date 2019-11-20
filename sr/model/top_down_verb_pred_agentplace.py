@@ -62,7 +62,7 @@ class Top_Down_Baseline(nn.Module):
         img_feat_flat = self.avg_pool(img_features)
         img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
         #todo: add normalization here as well
-        #ext_ctx = img_feat_flat * role_rep_combo
+        ext_ctx = img_feat_flat * role_rep_combo
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
         v = img_org.permute(0, 2, 1)
@@ -72,10 +72,9 @@ class Top_Down_Baseline(nn.Module):
         v_repr = self.v_net(v_emb)
         q_repr = self.q_net(q_emb)
 
-        #out = q_repr * v_repr + ext_ctx
-        out = q_repr * v_repr
+        out = q_repr * v_repr + ext_ctx
 
-        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+        '''mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
@@ -84,9 +83,9 @@ class Top_Down_Baseline(nn.Module):
         mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
         mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
         mfb_l2 = F.normalize(mfb_sign_sqrt)
-        #out = mfb_l2 + ext_ctx
+        out = mfb_l2 + ext_ctx'''
 
-        logits = self.classifier(mfb_l2)
+        logits = self.classifier(out)
 
         return logits
 
