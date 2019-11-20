@@ -147,7 +147,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
             show_att = False
-            if img_id[0] in img_id_list:
+            if verb_name in img_id[0]:
                 print('handling ', img_id[0])
                 show_att = True
             else:
