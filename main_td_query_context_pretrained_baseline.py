@@ -134,7 +134,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                     'clenching_25.jpg', 'leading_176.jpg', 'covering_95.jpg', 'fixing_271.jpg', 'sniffing_377.jpg',
                     'buying_143.jpg', 'begging_78.jpg', 'stroking_183.jpg', 'floating_112.jpg', 'licking_240.jpg',
                     'chewing_221.jpg', 'licking_302.jpg']
-    verb_name = 'tripping'
+    verb_name = 'begging'
     verb_name1 = 'stripping'
 
     tot_score = []
@@ -148,7 +148,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
             show_att = False
-            if verb_name in img_id[0] and verb_name1 not in img_id[0]:
+            if verb_name in img_id[0]:
                 print('handling ', img_id[0])
                 show_att = True
             else:
