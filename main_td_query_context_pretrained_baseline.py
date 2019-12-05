@@ -130,10 +130,10 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list =  ['squinting_35.jpg', 'wrapping_147.jpg', 'wetting_170.jpg', 'fetching_155.jpg', 'serving_136.jpg',
-                    'clenching_25.jpg', 'leading_176.jpg', 'covering_95.jpg', 'fixing_271.jpg', 'sniffing_377.jpg',
-                    'buying_143.jpg', 'begging_78.jpg', 'stroking_183.jpg', 'floating_112.jpg', 'licking_240.jpg',
-                    'chewing_221.jpg', 'licking_302.jpg']
+    img_id_list =  ['coaching_131.jpg', 'scratching_279.jpg', 'ejecting_150.jpg', 'attaching_84.jpg', 'licking_267.jpg',
+                    'manicuring_160.jpg', 'counting_113.jpg', 'drawing_332.jpg', 'dipping_343.jpg', 'hoisting_33.jpg',
+                    'clinging_296.jpg', 'nipping_29.jpg', 'writing_47.jpg', 'stretching_322.jpg', 'smearing_31.jpg',
+                    'attacking_218.jpg', 'restraining_94.jpg', 'tuning_66.jpg', 'wrapping_43.jpg', 'stapling_96.jpg']
     verb_name = 'covering'
     verb_name1 = 'recovering'
 
@@ -148,7 +148,7 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             #print(img_id[0], encoder.verb2_role_dict[encoder.verb_list[verb[0]]])
             show_att = False
-            if verb_name in img_id[0] and verb_name1 not in img_id[0]:
+            if img_id[0] in img_id_list:
                 print('handling ', img_id[0])
                 show_att = True
             else:
@@ -178,8 +178,8 @@ def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
             del role_predict, img, verb, labels
             #break
 
-    a = torch.sum(torch.stack(tot_score).squeeze(),0)
-    print(a)
+    #a = torch.sum(torch.stack(tot_score).squeeze(),0)
+    #print(a)
     #print(tot_score)
 
     return top1, top5, 0
