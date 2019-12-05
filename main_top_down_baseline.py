@@ -133,10 +133,10 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list = ['vacuuming_296.jpg', 'rubbing_274.jpg', 'counting_252.jpg', 'farming_141.jpg', 'mending_274.jpg',
-                   'punting_85.jpg', 'adjusting_24.jpg', 'yanking_213.jpg', 'molding_135.jpg', 'milking_181.jpg',
-                   'hurling_83.jpg', 'leaning_120.jpg', 'helping_171.jpg', 'offering_71.jpg', 'assembling_363.jpg',
-                   'wiping_16.jpg', 'aiming_185.jpg', 'breaking_242.jpg', 'measuring_57.jpg', 'scooping_261.jpg']
+    img_id_list = ['pulling_197.jpg', 'smearing_86.jpg', 'constructing_55.jpg', 'buttering_58.jpg', 'spitting_202.jpg',
+                   'rehabilitating_164.jpg', 'leaking_37.jpg', 'harvesting_209.jpg', 'imitating_78.jpg', 'injecting_199.jpg',
+                   'packaging_124.jpg', 'cooking_201.jpg', 'launching_147.jpg', 'dusting_151.jpg', 'stapling_168.jpg',
+                   'pulling_150.jpg', 'splashing_212.jpg', 'providing_134.jpg', 'kicking_190.jpg', 'riding_377.jpg']
 
     print ('evaluating model...')
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
