@@ -130,10 +130,10 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 def eval_output(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     model.eval()
 
-    img_id_list =  ['farming_226.jpg', 'measuring_246.jpg', 'lathering_112.jpg', 'injecting_328.jpg', 'leaning_62.jpg',
-                    'falling_242.jpg', 'watering_206.jpg', 'slapping_120.jpg', 'shoveling_281.jpg', 'repairing_303.jpg',
-                    'strapping_165.jpg', 'spearing_120.jpg', 'tearing_88.jpg', 'drenching_165.jpg', 'igniting_60.jpg',
-                    'mending_102.jpg', 'autographing_15.jpg', 'retrieving_145.jpg', 'displaying_150.jpg', 'disciplining_175.jpg']
+    img_id_list =  ['shoveling_252.jpg', 'climbing_104.jpg', 'moisturizing_207.jpg', 'competing_15.jpg', 'cleaning_108.jpg',
+                    'bathing_142.jpg', 'squinting_139.jpg', 'unpacking_196.jpg', 'spanking_67.jpg', 'gnawing_46.jpg',
+                    'lathering_164.jpg', 'installing_21.jpg', 'descending_66.jpg', 'tearing_222.jpg', 'chewing_19.jpg',
+                    'milking_129.jpg', 'filling_135.jpg', 'checking_173.jpg', 'pouncing_48.jpg', 'fastening_186.jpg']
     verb_name = 'covering'
     verb_name1 = 'recovering'
 
