@@ -70,7 +70,7 @@ class Top_Down_Baseline(nn.Module):
 
         print(c.size())
 
-        d = self.proj2(c)
+        d = self.proj2(c.unsqueeze(-1))
 
         print(d.size())
 
