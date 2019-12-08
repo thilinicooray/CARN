@@ -50,6 +50,7 @@ class Top_Down_Baseline(nn.Module):
         self.proj2 = proj2
         self.classifier = classifier
         self.encoder = encoder
+        self.dropout = nn.Dropout(0.3)
 
     def forward(self, v_org, gt_verb):
 
@@ -60,11 +61,11 @@ class Top_Down_Baseline(nn.Module):
         qctx_rep = self.v_net(qctx_vatt)
 
 
-        baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
-                                                                 self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
+        baseline_confidence = self.dropout(torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
+                                                                 self.proj1(baseline_rep).squeeze()).unsqueeze(-1))))
 
-        qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
-                                                                 self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))
+        qctx_confidence = self.dropout(torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
+                                                                 self.proj1(qctx_rep).squeeze()).unsqueeze(-1))))
 
         #TODO: do we need q_ctx_conf*(1-base_conf) ? we want the context to give input, not to discourage it
 
