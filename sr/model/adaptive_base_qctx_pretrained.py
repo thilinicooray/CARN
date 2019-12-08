@@ -50,7 +50,7 @@ class Top_Down_Baseline(nn.Module):
         self.proj2 = proj2
         self.classifier = classifier
         self.encoder = encoder
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, v_org, gt_verb):
 
