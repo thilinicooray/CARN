@@ -59,26 +59,12 @@ class Top_Down_Baseline(nn.Module):
         baseline_rep = self.v_net(baseline_vatt)
         qctx_rep = self.v_net(qctx_vatt)
 
-        a = self.proj1(baseline_rep)
-        print(a.size())
-
-        b = torch.zeros(baseline_rep.size(0)).cuda()
-        print(b.size())
-
-        c = torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
-                      self.proj1(baseline_rep).squeeze())
-
-        print(c.size())
-
-        d = self.proj2(c.unsqueeze(-1))
-
-        print(d.size())
 
         baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
-                                                                 self.proj1(baseline_rep).squeeze())))
+                                                                 self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
 
         qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
-                                                                 self.proj1(qctx_rep).squeeze())))
+                                                                 self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))
 
         #TODO: do we need q_ctx_conf*(1-base_conf) ? we want the context to give input, not to discourage it
 
