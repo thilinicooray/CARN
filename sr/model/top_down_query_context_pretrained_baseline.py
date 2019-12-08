@@ -192,6 +192,59 @@ class Top_Down_Baseline(nn.Module):
 
         return out
 
+    def forward_vatt(self, v_org, gt_verb):
+
+        baseline_out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
+
+        n_heads = 1
+
+        img_features = self.convnet(v_org)
+        batch_size, n_channel, conv_h, conv_w = img_features.size()
+
+        img_org = img_features.view(batch_size, -1, conv_h* conv_w)
+        v = img_org.permute(0, 2, 1)
+
+        batch_size = v.size(0)
+
+        role_idx = self.encoder.get_role_ids_batch(gt_verb)
+        # mask out non-existing roles from (max_role x max_role) adj. matrix
+        mask = self.encoder.get_adj_matrix_noself(gt_verb)
+
+        if torch.cuda.is_available():
+            role_idx = role_idx.to(torch.device('cuda'))
+            mask = mask.to(torch.device('cuda'))
+
+        img = v
+
+        img = img.expand(self.encoder.max_role_count, img.size(0), img.size(1), img.size(2))
+
+        img = img.transpose(0,1)
+        img = img.contiguous().view(batch_size * self.encoder.max_role_count, -1, v.size(2))
+
+        verb_embd = self.verb_emb(gt_verb)
+        role_embd = self.role_emb(role_idx)
+
+        verb_embed_expand = verb_embd.expand(self.encoder.max_role_count, verb_embd.size(0), verb_embd.size(1))
+        verb_embed_expand = verb_embed_expand.transpose(0,1)
+        concat_query = torch.cat([ verb_embed_expand, role_embd], -1)
+        role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
+
+        cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+
+        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+
+        withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
+
+        updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
+
+        att = self.v_att(img, updated_q_emb)
+
+
+        v_emb = (att * img).sum(1)
+
+
+        return v_emb
+
     def forward_vis(self, v_org, gt_verb, show_att = False):
 
         baseline_out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
