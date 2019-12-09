@@ -50,7 +50,7 @@ class Top_Down_Baseline(nn.Module):
         self.proj2 = proj2
         self.classifier = classifier
         self.encoder = encoder
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(0.1)
 
     def forward(self, v_org, gt_verb):
 
@@ -75,7 +75,7 @@ class Top_Down_Baseline(nn.Module):
         baseline_confidence_norm = baseline_confidence_up / (baseline_confidence_up + qctx_confidence_up)
         qctx_confidence_norm = qctx_confidence_up / (baseline_confidence_up + qctx_confidence_up)
 
-        out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
+        out = self.dropout(baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep)
 
         logits = self.classifier(out)
 
