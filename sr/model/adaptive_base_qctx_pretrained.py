@@ -57,11 +57,8 @@ class Top_Down_Baseline(nn.Module):
         baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
 
-        #baseline_rep = self.v_net(baseline_vatt)
-        #qctx_rep = self.v_net(qctx_vatt)
-
-        baseline_rep = baseline_vatt
-        qctx_rep = qctx_vatt
+        baseline_rep = self.v_net(baseline_vatt)
+        qctx_rep = self.v_net(qctx_vatt)
 
 
         baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
@@ -110,10 +107,9 @@ def build_adaptive_base_qctx(num_ans_classes, encoder, baseline_model, qctx_mode
     hidden_size = 1024
     img_embedding_size = 512
 
-    #v_net = FCNet([hidden_size, hidden_size])
-    v_net = nn.Linear(hidden_size, hidden_size)
+    v_net = FCNet([hidden_size, hidden_size])
 
-    proj1 = nn.Linear(hidden_size,1)
+    proj1 = FCNet([hidden_size,1])
     proj2 = nn.Linear(1,1)
 
     classifier = SimpleClassifier(
