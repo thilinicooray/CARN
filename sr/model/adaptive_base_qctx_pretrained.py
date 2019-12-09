@@ -69,11 +69,11 @@ class Top_Down_Baseline(nn.Module):
 
         #TODO: do we need q_ctx_conf*(1-base_conf) ? we want the context to give input, not to discourage it
 
-        qctx_confidence_up = qctx_confidence * (1 - baseline_confidence)
-        baseline_confidence_up = baseline_confidence * (1 - qctx_confidence)
+        #qctx_confidence_up = qctx_confidence * (1 - baseline_confidence)
+        #baseline_confidence_up = baseline_confidence * (1 - qctx_confidence)
 
-        baseline_confidence_norm = baseline_confidence_up / (baseline_confidence_up + qctx_confidence_up)
-        qctx_confidence_norm = qctx_confidence_up / (baseline_confidence_up + qctx_confidence_up)
+        baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
+        qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
         out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
 
