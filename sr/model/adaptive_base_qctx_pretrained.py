@@ -57,8 +57,11 @@ class Top_Down_Baseline(nn.Module):
         baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
 
-        baseline_rep = self.v_net(baseline_vatt)
-        qctx_rep = self.v_net(qctx_vatt)
+        #baseline_rep = self.v_net(baseline_vatt)
+        #qctx_rep = self.v_net(qctx_vatt)
+
+        baseline_rep = baseline_vatt
+        qctx_rep = qctx_vatt
 
 
         baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
