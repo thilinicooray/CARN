@@ -41,47 +41,81 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, qctx_model,  v_net, proj1, proj2, fusion_gating, classifier, encoder):
+    def __init__(self, baseline_model, qctx_model,  v_net, avg_pool, resize_img_flat, reconstruct_img, proj1, proj2, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.qctx_model = qctx_model
         self.v_net = v_net
+        self.avg_pool = avg_pool
+        self.resize_img_flat = resize_img_flat
+        self.reconstruct_img = reconstruct_img
         self.proj1 = proj1
         self.proj2 = proj2
-        self.fusion_gating = fusion_gating
         self.classifier = classifier
         self.encoder = encoder
         self.dropout = nn.Dropout(0.1)
+
+    def forward1(self, v_org, gt_verb):
+
+        baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
+        qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
+
+        baseline_rep = self.v_net(baseline_vatt)
+        qctx_rep = self.v_net(qctx_vatt)
+
+
+
+        baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
+                                                                 self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
+
+        qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
+                                                                 self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))
+
+
+
+        baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
+        qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
+
+
+        out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
+
+        logits = self.classifier(out)
+
+        role_label_pred = logits.contiguous().view(v_org.size(0), self.encoder.max_role_count, -1)
+
+        return role_label_pred
 
     def forward(self, v_org, gt_verb):
 
         baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
 
-        #baseline_rep = self.v_net(baseline_vatt)
-        #qctx_rep = self.v_net(qctx_vatt)
+        img_features = self.qctx_model.convnet(v_org) + self.baseline_model.convnet(v_org)
+        img_feat_flat = self.avg_pool(img_features)
+        img_feat_flat = self.resize_img_flat(img_feat_flat.squeeze())
 
-        baseline_rep = baseline_vatt
-        qctx_rep = qctx_vatt
+        baseline_rep = self.v_net(baseline_vatt)
+        qctx_rep = self.v_net(qctx_vatt)
+
+        baseline_out_frame = baseline_rep.contiguous().view(v_org.size(0), -1)
+        qctx_out_frame = qctx_rep.contiguous().view(v_org.size(0), -1)
 
 
-        '''baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
-                                                                 self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
+        recon_img_baseline = self.reconstruct_img(baseline_out_frame)
+        recon_img_qctx = self.reconstruct_img(qctx_out_frame)
+
+
+        baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
+                                                                 self.proj1(recon_img_baseline * img_feat_flat).squeeze()).unsqueeze(-1)))
 
         qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
-                                                                 self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))'''
+                                                             self.proj1(recon_img_qctx * img_feat_flat).squeeze()).unsqueeze(-1)))
 
-        baseline_confidence = torch.sigmoid(self.proj1(baseline_rep).squeeze()).unsqueeze(-1)
-        qctx_confidence = torch.sigmoid(self.proj1(qctx_rep).squeeze()).unsqueeze(-1)
+        baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
+        qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
 
-        #baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
-        #qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
-
-        impact_factor = F.softmax(torch.cat([baseline_confidence, qctx_confidence ],-1), dim = -1)
-
-        #out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
-        out = self.fusion_gating(impact_factor[:,1].unsqueeze(-1) * qctx_rep, impact_factor[:,0].unsqueeze(-1) * baseline_rep)
+        out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
 
         logits = self.classifier(out)
 
@@ -115,20 +149,17 @@ def build_adaptive_base_qctx(num_ans_classes, encoder, baseline_model, qctx_mode
 
     v_net = FCNet([hidden_size, hidden_size])
 
+    avg_pool = nn.AdaptiveAvgPool2d(1)
+    resize_img_flat = nn.Linear(img_embedding_size, 1024)
+    reconstruct_img = FCNet([hidden_size*6, hidden_size])
+
     proj1 = nn.Linear(hidden_size,1)
     proj2 = nn.Linear(1,1)
 
-    fusion_gating = nn.GRUCell(hidden_size, hidden_size)
 
-    classifier = nn.Sequential(
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(hidden_size, num_ans_classes)
-    )
+    classifier = SimpleClassifier(
+        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    #classifier = SimpleClassifier(
-        #hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
-
-    return Top_Down_Baseline(baseline_model, qctx_model,  v_net, proj1, proj2, fusion_gating, classifier, encoder)
+    return Top_Down_Baseline(baseline_model, qctx_model,  v_net, avg_pool, resize_img_flat, reconstruct_img, proj1, proj2, classifier, encoder)
 
 
