@@ -108,15 +108,21 @@ def build_adaptive_base_qctx(num_ans_classes, encoder, baseline_model, qctx_mode
     hidden_size = 1024
     img_embedding_size = 512
 
-    v_net = FCNet([hidden_size, hidden_size//2])
+    v_net = FCNet([hidden_size, hidden_size])
 
     proj1 = nn.Linear(hidden_size,1)
     proj2 = nn.Linear(1,1)
 
-    fusion_gating = nn.GRUCell(hidden_size, hidden_size//2)
+    fusion_gating = nn.GRUCell(hidden_size, hidden_size)
 
-    classifier = SimpleClassifier(
-        hidden_size//2, 2 * hidden_size, num_ans_classes, 0.5)
+    classifier = nn.Sequential(
+        nn.ReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(hidden_size, num_ans_classes)
+    )
+
+    #classifier = SimpleClassifier(
+        #hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(baseline_model, qctx_model,  v_net, proj1, proj2, fusion_gating, classifier, encoder)
 
