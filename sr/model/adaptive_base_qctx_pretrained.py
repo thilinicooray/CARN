@@ -110,10 +110,10 @@ def build_adaptive_base_qctx(num_ans_classes, encoder, baseline_model, qctx_mode
 
     v_net = FCNet([hidden_size, hidden_size//2])
 
-    proj1 = nn.Linear(hidden_size//2,1)
+    proj1 = nn.Linear(hidden_size,1)
     proj2 = nn.Linear(1,1)
 
-    fusion_gating = nn.GRUCell(hidden_size//5, hidden_size//2)
+    fusion_gating = nn.GRUCell(hidden_size, hidden_size//2)
 
     classifier = SimpleClassifier(
         hidden_size//2, 2 * hidden_size, num_ans_classes, 0.5)
