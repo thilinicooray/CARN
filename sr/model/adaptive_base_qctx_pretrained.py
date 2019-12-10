@@ -58,8 +58,8 @@ class Top_Down_Baseline(nn.Module):
         baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
 
-        #baseline_rep = self.v_net(baseline_vatt)
-        #qctx_rep = self.v_net(qctx_vatt)
+        baseline_rep = self.v_net(baseline_vatt)
+        qctx_rep = self.v_net(qctx_vatt)
 
 
         '''baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
@@ -68,15 +68,15 @@ class Top_Down_Baseline(nn.Module):
         qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
                                                                  self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))'''
 
-        baseline_confidence = torch.sigmoid(self.proj1(baseline_vatt).squeeze()).unsqueeze(-1)
-        qctx_confidence = torch.sigmoid(self.proj1(qctx_vatt).squeeze()).unsqueeze(-1)
+        baseline_confidence = torch.sigmoid(self.proj1(baseline_rep).squeeze()).unsqueeze(-1)
+        qctx_confidence = torch.sigmoid(self.proj1(qctx_rep).squeeze()).unsqueeze(-1)
 
 
         baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
         qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
         #out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
-        out = self.fusion_gating(qctx_confidence_norm * qctx_vatt, baseline_confidence_norm * baseline_vatt)
+        out = self.fusion_gating(qctx_confidence_norm * qctx_rep, baseline_confidence_norm * baseline_rep)
 
         logits = self.classifier(out)
 
