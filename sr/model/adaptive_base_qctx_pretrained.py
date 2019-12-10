@@ -114,6 +114,14 @@ class Top_Down_Baseline(nn.Module):
         baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
         qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
+        baseline_confidence_norm = baseline_confidence_norm.expand(self.encoder.max_role_count, baseline_confidence_norm.size(0), baseline_confidence_norm.size(1))
+        baseline_confidence_norm = baseline_confidence_norm.transpose(0,1)
+        baseline_confidence_norm = baseline_confidence_norm.contiguous().view(baseline_confidence_norm.size(0) * self.encoder.max_role_count, -1)
+
+        qctx_confidence_norm = qctx_confidence_norm.expand(self.encoder.max_role_count, qctx_confidence_norm.size(0), qctx_confidence_norm.size(1))
+        qctx_confidence_norm = qctx_confidence_norm.transpose(0,1)
+        qctx_confidence_norm = qctx_confidence_norm.contiguous().view(qctx_confidence_norm.size(0) * self.encoder.max_role_count, -1)
+
 
         out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
 
