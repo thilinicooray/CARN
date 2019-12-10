@@ -41,13 +41,14 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, qctx_model,  v_net, proj1, proj2, classifier, encoder):
+    def __init__(self, baseline_model, qctx_model,  v_net, proj1, proj2, fusion_gating, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.qctx_model = qctx_model
         self.v_net = v_net
         self.proj1 = proj1
         self.proj2 = proj2
+        self.fusion_gating = fusion_gating
         self.classifier = classifier
         self.encoder = encoder
         self.dropout = nn.Dropout(0.1)
@@ -67,15 +68,11 @@ class Top_Down_Baseline(nn.Module):
         qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
                                                                  self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))
 
-        #TODO: do we need q_ctx_conf*(1-base_conf) ? we want the context to give input, not to discourage it
-
-        #qctx_confidence_up = qctx_confidence * (1 - baseline_confidence)
-        #baseline_confidence_up = baseline_confidence * (1 - qctx_confidence)
-
         baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
         qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
-        out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
+        #out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
+        out = self.fusion_gating(qctx_confidence_norm * qctx_rep, baseline_confidence_norm * baseline_rep)
 
         logits = self.classifier(out)
 
@@ -109,12 +106,14 @@ def build_adaptive_base_qctx(num_ans_classes, encoder, baseline_model, qctx_mode
 
     v_net = FCNet([hidden_size, hidden_size])
 
-    proj1 = FCNet([hidden_size,1])
+    proj1 = nn.Linear(hidden_size,1)
     proj2 = nn.Linear(1,1)
+
+    fusion_gating = nn.GRUCell(hidden_size, hidden_size)
 
     classifier = SimpleClassifier(
         hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
 
-    return Top_Down_Baseline(baseline_model, qctx_model,  v_net, proj1, proj2, classifier, encoder)
+    return Top_Down_Baseline(baseline_model, qctx_model,  v_net, proj1, proj2, fusion_gating, classifier, encoder)
 
 

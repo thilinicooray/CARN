@@ -312,6 +312,7 @@ def main():
             {'params': model.v_net.parameters()},
             {'params': model.proj1.parameters()},
             {'params': model.proj2.parameters()},
+            {'params': model.fusion_gating.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 
