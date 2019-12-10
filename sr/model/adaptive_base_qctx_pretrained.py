@@ -81,7 +81,7 @@ class Top_Down_Baseline(nn.Module):
         impact_factor = F.softmax(torch.cat([baseline_confidence, qctx_confidence ],-1), dim = -1)
 
         #out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
-        out = self.fusion_gating(impact_factor[:,1] * qctx_rep, impact_factor[:,0] * baseline_rep)
+        out = self.fusion_gating(impact_factor[:,1].unsqueeze(-1) * qctx_rep, impact_factor[:,0].unsqueeze(-1) * baseline_rep)
 
         logits = self.classifier(out)
 
