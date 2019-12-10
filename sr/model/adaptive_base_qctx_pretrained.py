@@ -104,13 +104,10 @@ class Top_Down_Baseline(nn.Module):
         recon_img_baseline = self.reconstruct_img(baseline_out_frame)
         recon_img_qctx = self.reconstruct_img(qctx_out_frame)
 
-        print(recon_img_baseline.size(), img_feat_flat.size())
-
-
-        baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
+        baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(v_org.size(0)).cuda(),
                                                                  self.proj1(recon_img_baseline * img_feat_flat).squeeze()).unsqueeze(-1)))
 
-        qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
+        qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(v_org.size(0)).cuda(),
                                                              self.proj1(recon_img_qctx * img_feat_flat).squeeze()).unsqueeze(-1)))
 
         baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
