@@ -213,7 +213,7 @@ def main():
             {'params': model.updated_query_composer.parameters()},
             {'params': model.neighbour_attention.parameters()},
             {'params': model.classifier.parameters()},
-            {'params': model.v_net_joint},
+            {'params': model.v_net_joint.parameters()},
             {'params': model.proj1.parameters()},
             {'params': model.proj2.parameters()},
         ], lr=1e-3)
