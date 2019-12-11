@@ -55,7 +55,7 @@ class Top_Down_Baseline(nn.Module):
         self.encoder = encoder
         self.dropout = nn.Dropout(0.1)
 
-    def forward1(self, v_org, gt_verb):
+    def forward(self, v_org, gt_verb):
 
         baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
@@ -85,7 +85,7 @@ class Top_Down_Baseline(nn.Module):
 
         return role_label_pred
 
-    def forward(self, v_org, gt_verb):
+    def forward2(self, v_org, gt_verb):
 
         baseline_vatt = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
         qctx_vatt = self.qctx_model.forward_hiddenrep(v_org, gt_verb)
