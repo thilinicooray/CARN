@@ -190,18 +190,18 @@ class Top_Down_Baseline(nn.Module):
     def calculate_loss(self, gt_verbs, role_label_pred, gt_labels):
 
         batch_size = role_label_pred.size()[0]
+        criterion = nn.CrossEntropyLoss(ignore_index=self.encoder.get_num_labels())
 
-        loss = 0
-        for i in range(batch_size):
-            for index in range(gt_labels.size()[1]):
-                frame_loss = 0
-                for j in range(0, self.encoder.max_role_count):
-                    frame_loss += cross_entropy_loss(role_label_pred[i][j], gt_labels[i,index,j] ,self.encoder.get_num_labels())
-                frame_loss = frame_loss/len(self.encoder.verb2_role_dict[self.encoder.verb_list[gt_verbs[i]]])
-                loss += frame_loss
+        gt_label_turned = gt_labels.transpose(1,2).contiguous().view(batch_size* self.encoder.max_role_count*3, -1)
 
-        final_loss = loss/batch_size
-        return final_loss
+        role_label_pred = role_label_pred.contiguous().view(batch_size* self.encoder.max_role_count, -1)
+        role_label_pred = role_label_pred.expand(3, role_label_pred.size(0), role_label_pred.size(1))
+        role_label_pred = role_label_pred.transpose(0,1)
+        role_label_pred = role_label_pred.contiguous().view(-1, role_label_pred.size(-1))
+
+        loss = criterion(role_label_pred, gt_label_turned.squeeze(1)) * 3
+
+        return loss
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
