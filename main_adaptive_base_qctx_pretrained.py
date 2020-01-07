@@ -304,7 +304,7 @@ def main():
         print('Training from the scratch.')
         model_name = 'train_full'
         utils.set_trainable(model, True)
-        utils.load_net(args.baseline_model, [model.baseline_model])
+        '''utils.load_net(args.baseline_model, [model.baseline_model])
         utils.set_trainable(model.baseline_model, False)
         utils.load_net(args.qctx_model, [model.qctx_model])
         utils.set_trainable(model.qctx_model, False)
@@ -315,7 +315,33 @@ def main():
             {'params': model.proj1.parameters()},
             {'params': model.proj2.parameters()},
             {'params': model.classifier.parameters()}
+        ], lr=1e-3)'''
+
+        utils.load_net(args.baseline_model, [model.baseline_model])
+        utils.set_trainable(model.baseline_model, False)
+        utils.load_net(args.qctx_model, [model.qctx_model])
+        utils.set_trainable(model.qctx_model, False)
+
+        #ft part of pre-trained
+        utils.set_trainable(model.baseline_model.q_net, True)
+        utils.set_trainable(model.baseline_model.v_net, True)
+        utils.set_trainable(model.qctx_model.q_net, True)
+        utils.set_trainable(model.qctx_model.v_net, True)
+
+        optimizer = torch.optim.Adamax([
+            {'params': model.baseline_model.q_net.parameters(), 'lr': 5e-5},
+            {'params': model.baseline_model.v_net.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.q_net.parameters(), 'lr': 5e-5},
+            {'params': model.qctx_model.v_net.parameters(), 'lr': 5e-5},
+            {'params': model.v_net.parameters()},
+            {'params': model.resize_img_flat.parameters()},
+            {'params': model.reconstruct_img.parameters()},
+            {'params': model.proj1.parameters()},
+            {'params': model.proj2.parameters()},
+            {'params': model.classifier.parameters()}
         ], lr=1e-3)
+
+
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 

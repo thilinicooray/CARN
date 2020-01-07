@@ -64,7 +64,6 @@ class Top_Down_Baseline(nn.Module):
         qctx_rep = self.v_net(qctx_vatt)
 
 
-
         baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
                                                                  self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
 
