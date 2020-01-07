@@ -180,7 +180,7 @@ class Top_Down_Baseline(nn.Module):
         baseline_confidence_norm = baseline_confidence / (baseline_confidence + qctx_confidence)
         qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
-
+        print(baseline_confidence_norm, qctx_confidence_norm)
         out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
 
         logits = self.classifier(out)
