@@ -76,6 +76,11 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=n_worker)
 
+    if args.gpuid >= 0:
+        model.cuda()
+        torch.cuda.manual_seed(args.seed)
+        torch.backends.cudnn.benchmark = True
+
 
     train(model, train_loader, None, None, None, n_epoch, args.output_dir, encoder, args.gpuid, clip_norm, None, args.model_saving_name,
               )
