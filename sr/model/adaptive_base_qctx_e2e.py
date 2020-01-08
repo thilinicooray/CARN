@@ -136,9 +136,9 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         base_out = mfb_l2
         #calc confidence
-        #baseline_rep = self.v_net_joint(base_out)
-        #baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
-                                                                 #self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
+        baseline_rep = self.v_net_joint(base_out)
+        baseline_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(baseline_rep.size(0)).cuda(),
+                                                                 self.proj1(baseline_rep).squeeze()).unsqueeze(-1)))
 
 
         #QCTX
@@ -169,7 +169,7 @@ class Top_Down_Baseline(nn.Module):
         qctx_out = mfb_l2
 
         #calc confidence
-        '''qctx_rep = self.v_net_joint(qctx_out)
+        qctx_rep = self.v_net_joint(qctx_out)
         qctx_confidence = torch.sigmoid(self.proj2(torch.max(torch.zeros(qctx_rep.size(0)).cuda(),
                                                              self.proj1(qctx_rep).squeeze()).unsqueeze(-1)))
 
@@ -179,9 +179,9 @@ class Top_Down_Baseline(nn.Module):
         qctx_confidence_norm = qctx_confidence / (baseline_confidence + qctx_confidence)
 
 
-        out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep'''
+        out = baseline_confidence_norm * baseline_rep + qctx_confidence_norm * qctx_rep
 
-        logits = self.classifier(qctx_out)
+        logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
