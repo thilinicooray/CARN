@@ -237,7 +237,7 @@ def main():
     parser.add_argument('--model_saving_name', type=str, help='saving name of the outpul model')
 
     parser.add_argument('--epochs', type=int, default=500)
-    parser.add_argument('--model', type=str, default='top_down_query_context_only_baseline')
+    parser.add_argument('--model', type=str, default='top_down_baseline')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=1111, help='random seed')
     parser.add_argument('--clip_norm', type=float, default=0.25)
