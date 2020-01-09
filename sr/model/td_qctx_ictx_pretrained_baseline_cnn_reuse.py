@@ -100,7 +100,7 @@ class Top_Down_Baseline(nn.Module):
         withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
         #ictx
-        withctx_expand = withctx.expand(img.size(1), withctx.size(0), withctx.size(1))
+        '''withctx_expand = withctx.expand(img.size(1), withctx.size(0), withctx.size(1))
         withctx_expand = withctx_expand.transpose(0,1)
         # combine neighbour information with all regions of the image
         added_img = torch.cat([withctx_expand, img], -1)
@@ -116,7 +116,7 @@ class Top_Down_Baseline(nn.Module):
         ctx_mask = added_img
         ctx_mask = ctx_mask.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, ctx_mask.size(-1))
         # update regions using the gate
-        ctx_removed_img = (ctx_mask * img).sum(1)
+        ctx_removed_img = (ctx_mask * img).sum(1)'''
 
 
         #qctx
@@ -142,7 +142,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        logits = self.classifier(torch.cat([ctx_removed_img, out], -1))
+        logits = self.classifier(out + withctx)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -413,7 +413,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
-        hidden_size + img_embedding_size, 2 * hidden_size, num_ans_classes, 0.5)
+        hidden_size , 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(baseline_model, role_emb, verb_emb, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder)
