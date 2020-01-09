@@ -113,7 +113,7 @@ class Top_Down_Baseline(nn.Module):
         if torch.cuda.is_available():
             tot_att = tot_att.to(torch.device('cuda'))
 
-        ctx_mask = tot_att - added_img
+        ctx_mask = added_img
         ctx_mask = ctx_mask.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, ctx_mask.size(-1))
         # update regions using the gate
         ctx_removed_img = (ctx_mask * img).sum(1)
