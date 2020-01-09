@@ -142,7 +142,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        logits = self.classifier(ctx_removed_img + out)
+        logits = self.classifier(torch.cat([ctx_removed_img, out], -1))
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -409,11 +409,11 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     q_net = FCNet([hidden_size, hidden_size ])
     v_net = FCNet([img_embedding_size, hidden_size])
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
-    ctx_impact = weight_norm(nn.Linear(hidden_size + 512, 1))
+    ctx_impact = weight_norm(nn.Linear(hidden_size + img_embedding_size, 1))
     Dropout_C = nn.Dropout(0.1)
 
     classifier = SimpleClassifier(
-        hidden_size, 2 * hidden_size, num_ans_classes, 0.5)
+        hidden_size + img_embedding_size, 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(baseline_model, role_emb, verb_emb, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder)
