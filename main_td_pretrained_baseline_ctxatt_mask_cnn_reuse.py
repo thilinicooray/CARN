@@ -302,6 +302,7 @@ def main():
         utils.load_net(args.baseline_model, [model.baseline_model])
         utils.set_trainable(model.baseline_model, False)
         optimizer = torch.optim.Adamax([
+            {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.obj_cls.parameters()}
         ], lr=1e-3)
 

@@ -24,8 +24,9 @@ class vgg16_modified(nn.Module):
         return features
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, encoder, Dropout_C, obj_cls):
+    def __init__(self, covnet, baseline_model, encoder, Dropout_C, obj_cls):
         super(Top_Down_Baseline, self).__init__()
+        self.convnet = covnet
         self.baseline_model = baseline_model
         self.encoder = encoder
         self.Dropout_C = Dropout_C
@@ -37,7 +38,7 @@ class Top_Down_Baseline(nn.Module):
         if torch.cuda.is_available():
             role_oh_encoding = role_oh_encoding.to(torch.device('cuda'))
 
-        img_features = self.baseline_model.convnet(v_org)
+        img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
@@ -97,6 +98,7 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline
 
     hidden_size = 1024
     img_embedding_size = 512
+    covnet = vgg16_modified()
 
     obj_cls = nn.Sequential(
         nn.Linear(img_embedding_size, hidden_size*2),
@@ -108,6 +110,6 @@ def build_top_down_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline
 
     Dropout_C = nn.Dropout(0.1)
 
-    return Top_Down_Baseline(baseline_model, encoder, Dropout_C, obj_cls)
+    return Top_Down_Baseline(covnet, baseline_model, encoder, Dropout_C, obj_cls)
 
 
