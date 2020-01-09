@@ -41,9 +41,10 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder):
+    def __init__(self, baseline_model, covnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
+        self.convnet = covnet
         self.role_emb = role_emb
         self.verb_emb = verb_emb
         self.v_att = v_att
@@ -62,7 +63,7 @@ class Top_Down_Baseline(nn.Module):
 
         n_heads = 1
 
-        img_features = self.baseline_model.convnet(v_org)
+        img_features = self.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
@@ -406,6 +407,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     word_embedding_size = 300
     img_embedding_size = 512
     baseline_model = baseline_model
+    covnet = vgg16_modified()
     role_emb = nn.Embedding(n_roles+1, word_embedding_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, word_embedding_size)
     updated_query_composer = FCNet([hidden_size + word_embedding_size * 2, hidden_size])
@@ -419,7 +421,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     classifier = SimpleClassifier(
         hidden_size , 2 * hidden_size, num_ans_classes, 0.5)
 
-    return Top_Down_Baseline(baseline_model, role_emb, verb_emb, v_att, q_net,
+    return Top_Down_Baseline(baseline_model, covnet, role_emb, verb_emb, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder)
 
 

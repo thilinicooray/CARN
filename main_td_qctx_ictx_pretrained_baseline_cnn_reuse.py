@@ -13,14 +13,14 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
     print_freq = 400
     dev_score_list = []
 
-    '''if gpu_mode >= 0 :
+    if gpu_mode >= 0 :
         ngpus = 2
         device_array = [i for i in range(0,ngpus)]
 
         pmodel = torch.nn.DataParallel(model, device_ids=device_array)
     else:
-        pmodel = model'''
-    pmodel = model
+        pmodel = model
+    #pmodel = model
 
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
@@ -302,6 +302,7 @@ def main():
         utils.load_net(args.baseline_model, [model.baseline_model])
         utils.set_trainable(model.baseline_model, False)
         optimizer = torch.optim.Adamax([
+            {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
             {'params': model.v_att.parameters()},
