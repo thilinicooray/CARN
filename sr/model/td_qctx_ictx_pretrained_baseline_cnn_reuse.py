@@ -58,7 +58,7 @@ class Top_Down_Baseline(nn.Module):
 
     def forward(self, v_org, gt_verb):
 
-        baseline_out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
+        out = self.baseline_model.forward_hiddenrep(v_org, gt_verb)
 
         n_heads = 1
 
@@ -93,56 +93,60 @@ class Top_Down_Baseline(nn.Module):
         concat_query = torch.cat([ verb_embed_expand, role_embd], -1)
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
 
-        cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+        for i in range(2):
 
-        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+            cur_group = out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
+            neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
-        #ictx
-        '''withctx_expand = withctx.expand(img.size(1), withctx.size(0), withctx.size(1))
-        withctx_expand = withctx_expand.transpose(0,1)
-        # combine neighbour information with all regions of the image
-        added_img = torch.cat([withctx_expand, img], -1)
-        added_img = added_img.contiguous().view(-1, added_img.size(-1))
-        # use a gating mechanism to decide how much information is necessary from each region
-        # based on context information to answer current query
-        added_img = torch.sigmoid(self.Dropout_C(self.ctx_impact(added_img)))
+            withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
-        tot_att = torch.ones(added_img.size(0), added_img.size(-1))
-        if torch.cuda.is_available():
-            tot_att = tot_att.to(torch.device('cuda'))
-
-        ctx_mask = added_img
-        ctx_mask = ctx_mask.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, ctx_mask.size(-1))
-        # update regions using the gate
-        ctx_removed_img = (ctx_mask * img).sum(1)'''
-
-
-        #qctx
-
-        updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
-
-        att = self.v_att(img, updated_q_emb)
+            #ictx
+            '''withctx_expand = withctx.expand(img.size(1), withctx.size(0), withctx.size(1))
+            withctx_expand = withctx_expand.transpose(0,1)
+            # combine neighbour information with all regions of the image
+            added_img = torch.cat([withctx_expand, img], -1)
+            added_img = added_img.contiguous().view(-1, added_img.size(-1))
+            # use a gating mechanism to decide how much information is necessary from each region
+            # based on context information to answer current query
+            added_img = torch.sigmoid(self.Dropout_C(self.ctx_impact(added_img)))
+    
+            tot_att = torch.ones(added_img.size(0), added_img.size(-1))
+            if torch.cuda.is_available():
+                tot_att = tot_att.to(torch.device('cuda'))
+    
+            ctx_mask = added_img
+            ctx_mask = ctx_mask.contiguous().view(v.size(0) * self.encoder.max_role_count, -1, ctx_mask.size(-1))
+            # update regions using the gate
+            ctx_removed_img = (ctx_mask * img).sum(1)'''
 
 
-        v_emb = (att * img).sum(1)
-        v_repr = self.v_net(v_emb)
-        q_repr = self.q_net(updated_q_emb)
+            #qctx
 
-        #out = q_repr * v_repr
-        mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+            updated_q_emb = self.Dropout_C(self.updated_query_composer(torch.cat([withctx,role_verb_embd], -1)))
 
-        mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
+            att = self.v_att(img, updated_q_emb)
 
-        mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
-        mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
-        mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
-        mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
-        mfb_l2 = F.normalize(mfb_sign_sqrt)
-        out = mfb_l2
 
-        logits = self.classifier(out + self.Dropout_C(withctx))
+            v_emb = (att * img).sum(1)
+            v_repr = self.v_net(v_emb)
+            q_repr = self.q_net(updated_q_emb)
+
+            #out = q_repr * v_repr
+            mfb_iq_eltwise = torch.mul(q_repr, v_repr)
+
+            mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
+
+            mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
+            mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
+            mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
+            mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
+            mfb_l2 = F.normalize(mfb_sign_sqrt)
+            out = mfb_l2  + withctx
+
+
+
+        logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
