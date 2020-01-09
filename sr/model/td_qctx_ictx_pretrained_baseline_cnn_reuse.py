@@ -142,7 +142,7 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        logits = self.classifier(out + withctx)
+        logits = self.classifier(out + self.Dropout_C(withctx))
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
