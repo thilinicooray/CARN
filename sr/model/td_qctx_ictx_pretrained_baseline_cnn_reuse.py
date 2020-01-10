@@ -411,12 +411,15 @@ class TimestepCombiner(nn.Module):
         self.d_model = d_model
         self.m1 = nn.Sequential(
             nn.Linear(d_in, d_model),
+            nn.ReLU(),
         )
         self.m2 = nn.Sequential(
             nn.Linear(d_in, d_model),
+            nn.ReLU(),
         )
         self.m3 = nn.Sequential(
             nn.Linear(d_in, d_model),
+            nn.ReLU(),
         )
 
     def forward(self, input):
