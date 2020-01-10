@@ -444,7 +444,7 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     ctx_impact = weight_norm(nn.Linear(hidden_size + img_embedding_size, 1))
     Dropout_C = nn.Dropout(0.1)
-    combiner = TimestepCombiner(hidden_size, hidden_size)
+    combiner = TimestepCombiner(hidden_size, hidden_size*2)
 
     #classifier = SimpleClassifier(
         #hidden_size , 2 * hidden_size, num_ans_classes, 0.5)
