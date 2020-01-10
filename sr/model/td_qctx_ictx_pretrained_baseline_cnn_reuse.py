@@ -425,7 +425,8 @@ class TimestepCombiner(nn.Module):
         )
 
     def forward(self, input):
-        return torch.cat([self.m1(input) * self.m2(input), self.m3(input)],-1)
+        #return torch.cat([self.m1(input) * self.m2(input), self.m3(input)],-1)
+        return self.m1(input) * self.m2(input)
 
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline_model):
 
@@ -443,10 +444,16 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     ctx_impact = weight_norm(nn.Linear(hidden_size + img_embedding_size, 1))
     Dropout_C = nn.Dropout(0.1)
-    combiner = TimestepCombiner(hidden_size, img_embedding_size)
+    combiner = TimestepCombiner(hidden_size, hidden_size)
 
-    classifier = SimpleClassifier(
-        hidden_size , 2 * hidden_size, num_ans_classes, 0.5)
+    #classifier = SimpleClassifier(
+        #hidden_size , 2 * hidden_size, num_ans_classes, 0.5)
+
+    classifier = nn.Sequential(
+        nn.ReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(hidden_size*2, num_ans_classes)
+    )
 
     return Top_Down_Baseline(baseline_model, covnet, role_emb, verb_emb, v_att, q_net,
                              v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, combiner, classifier, encoder)
