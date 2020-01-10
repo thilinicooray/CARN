@@ -41,7 +41,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
 
 class Top_Down_Baseline(nn.Module):
-    def __init__(self, baseline_model, covnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder):
+    def __init__(self, baseline_model, covnet, role_emb, verb_emb, v_att, q_net, v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, combiner, classifier, encoder):
         super(Top_Down_Baseline, self).__init__()
         self.baseline_model = baseline_model
         self.convnet = covnet
@@ -54,6 +54,7 @@ class Top_Down_Baseline(nn.Module):
         self.neighbour_attention = neighbour_attention
         self.ctx_impact= ctx_impact
         self.Dropout_C = Dropout_C
+        self.combiner = combiner
         self.classifier = classifier
         self.encoder = encoder
 
@@ -63,7 +64,7 @@ class Top_Down_Baseline(nn.Module):
 
         n_heads = 1
 
-        img_features = self.convnet(v_org)
+        img_features = self.baseline_model.convnet(v_org)
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
@@ -136,18 +137,20 @@ class Top_Down_Baseline(nn.Module):
             #out = q_repr * v_repr
             mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
-            mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise  + withctx)
+            mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
+
+
 
             mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
             mfb_iq_sumpool = torch.sum(mfb_iq_resh, 3, keepdim=True)    # N x 1 x 1000 x 1
             mfb_out = torch.squeeze(mfb_iq_sumpool)                     # N x 1000
             mfb_sign_sqrt = torch.sqrt(F.relu(mfb_out)) - torch.sqrt(F.relu(-mfb_out))
             mfb_l2 = F.normalize(mfb_sign_sqrt)
-            out = mfb_l2
+            combined = self.combiner(mfb_l2 + out)
 
 
 
-        logits = self.classifier(out)
+        logits = self.classifier(combined)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
@@ -401,6 +404,24 @@ class MultiHeadedAttention(nn.Module):
 
         return self.linears[-1](x), torch.mean(self.attn, 1)
 
+class TimestepCombiner(nn.Module):
+    def __init__(self, d_in, d_model, dropout=0.1):
+        "Take in model size and number of heads."
+        super(TimestepCombiner, self).__init__()
+        self.d_model = d_model
+        self.m1 = nn.Sequential(
+            nn.Linear(d_in, d_model),
+        )
+        self.m2 = nn.Sequential(
+            nn.Linear(d_in, d_model),
+        )
+        self.m3 = nn.Sequential(
+            nn.Linear(d_in, d_model),
+        )
+
+    def forward(self, input):
+        return torch.cat([self.m1(input) * self.m2(input), self.m3(input)],-1)
+
 def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes, encoder, baseline_model):
 
     hidden_size = 1024
@@ -417,11 +438,12 @@ def build_top_down_query_context_only_baseline(n_roles, n_verbs, num_ans_classes
     neighbour_attention = MultiHeadedAttention(4, hidden_size, dropout=0.1)
     ctx_impact = weight_norm(nn.Linear(hidden_size + img_embedding_size, 1))
     Dropout_C = nn.Dropout(0.1)
+    combiner = TimestepCombiner(hidden_size, img_embedding_size)
 
     classifier = SimpleClassifier(
         hidden_size , 2 * hidden_size, num_ans_classes, 0.5)
 
     return Top_Down_Baseline(baseline_model, covnet, role_emb, verb_emb, v_att, q_net,
-                             v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, classifier, encoder)
+                             v_net, neighbour_attention, updated_query_composer, ctx_impact, Dropout_C, combiner, classifier, encoder)
 
 
