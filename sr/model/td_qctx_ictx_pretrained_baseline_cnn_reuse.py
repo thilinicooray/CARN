@@ -412,6 +412,7 @@ class TimestepCombiner(nn.Module):
         self.m1 = nn.Sequential(
             nn.Linear(d_in, d_model),
             nn.ReLU(),
+            nn.Dropout(dropout),
         )
         self.m2 = nn.Sequential(
             nn.Linear(d_in, d_model),
@@ -420,6 +421,7 @@ class TimestepCombiner(nn.Module):
         self.m3 = nn.Sequential(
             nn.Linear(d_in, d_model),
             nn.ReLU(),
+            nn.Dropout(dropout),
         )
 
     def forward(self, input):
