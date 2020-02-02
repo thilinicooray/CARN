@@ -97,11 +97,9 @@ class Top_Down_Baseline(nn.Module):
 
         cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
-        a = torch.matmul(mask, cur_group)
+        neighbours = torch.matmul(mask, cur_group)
 
-        print('ctx :', cur_group.size(), mask.size(), a.size())
-
-        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+        #neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
         withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
 
