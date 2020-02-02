@@ -35,7 +35,7 @@ def attention(query, key, value, mask=None, dropout=None):
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim = -1)
-    print('scores : ',scores.size(), p_attn.size(), mask.size(), value.size())
+    #print('scores : ',scores.size(), p_attn.size(), mask.size(), value.size())
     #p_attn = mask
     if dropout is not None:
         p_attn = dropout(p_attn)
@@ -96,6 +96,8 @@ class Top_Down_Baseline(nn.Module):
         role_verb_embd = concat_query.contiguous().view(-1, role_embd.size(-1)*2)
 
         cur_group = baseline_out.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
+
+        print('ctx :', cur_group.size(), mask.size())
 
         neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
