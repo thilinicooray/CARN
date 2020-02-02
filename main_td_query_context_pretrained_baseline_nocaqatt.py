@@ -7,7 +7,7 @@ from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_e
 from sr.model import top_down_query_context_pretrained_baseline_nocaqatt, top_down_baseline
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
     model.train()
 
     time_all = time.time()
