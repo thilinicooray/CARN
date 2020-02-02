@@ -97,7 +97,6 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
             del role_predict, loss, img, verb, labels
-            break
 
         print('epoch %d, time: %.2f' % (epoch, time.time()-t))
         print('Epoch ', epoch, ' completed!')

@@ -35,7 +35,7 @@ def attention(query, key, value, mask=None, dropout=None):
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim = -1)
-    print('scores : ',scores.size(), mask.size(), value.size(), scores[0], mask[0])
+    print('scores : ',scores.size(), p_attn.size(), mask.size(), value.size())
     #p_attn = mask
     if dropout is not None:
         p_attn = dropout(p_attn)
