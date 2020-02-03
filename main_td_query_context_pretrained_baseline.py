@@ -29,7 +29,7 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
     all = count_parameters(model)
     cnn = count_parameters(model.convnet)
-    base = count_parameters(model.baseline_model)
+    base = count_parameters(model.updated_query_composer)
     neighbour = count_parameters(model.neighbour_attention)
 
     print('model parameters - all, cnn, base ', all, cnn, base, neighbour)
