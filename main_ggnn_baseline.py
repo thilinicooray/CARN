@@ -112,7 +112,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3, write_to_file)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
     with torch.no_grad():
-
+        t1 = time.time()
         for i, (img_id, img, verb, labels) in enumerate(dev_loader):
 
             if gpu_mode >= 0:
@@ -135,7 +135,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
 
             del role_predict, img, verb, labels
             #break
-
+        print('eval, time: %.2f' % ( time.time()-t1))
     return top1, top5, 0
 
 def main():
