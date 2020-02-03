@@ -1,9 +1,13 @@
 import torch
 import json
 import os
+import time
 
 from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_encoder
 from sr.model import top_down_query_context_pretrained_baseline, top_down_baseline
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
@@ -21,12 +25,20 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
     else:
         pmodel = model
     #pmodel = model
+    #counting params
+
+    all = count_parameters(model)
+    cnn = count_parameters(model.convnet)
+    base = count_parameters(model.baseline_model)
+
+    print('model parameters - all, cnn, base ', all, cnn, base)
+
 
     top1 = imsitu_scorer.imsitu_scorer(encoder, 1, 3)
     top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
     for epoch in range(max_epoch):
-
+        t = time.time()
         for i, (_, img, verb, labels) in enumerate(train_loader):
             total_steps += 1
 
@@ -91,6 +103,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
                 top5 = imsitu_scorer.imsitu_scorer(encoder, 5, 3)
 
             del role_predict, loss, img, verb, labels
+
+        print('epoch %d, time: %.2f' % (epoch, time.time()-t))
         print('Epoch ', epoch, ' completed!')
         scheduler.step()
 
