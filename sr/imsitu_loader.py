@@ -172,6 +172,36 @@ class imsitu_loader_verb_pretrained_img_feat(data.Dataset):
     def __len__(self):
         return len(self.annotations)
 
+class imsitu_loader_tdfeat(data.Dataset):
+    def __init__(self, img_dir, annotation_file, encoder, split, transform=None, dataroot='data'):
+        self.img_dir = img_dir
+        self.annotations = annotation_file
+        self.ids = list(self.annotations.keys())
+        self.encoder = encoder
+        self.transform = transform
+
+        self.td_img_id2idx = cPickle.load(
+            open(os.path.join(dataroot, 'td_imsitu_%s_imgid2idx.pkl' % split), 'rb'))
+        print('loading td feat from h5 file', split)
+        td_grid_h5_path = os.path.join(dataroot, 'td_imsitu_%s.hdf5' % split)
+        with h5py.File(td_grid_h5_path, 'r') as hf:
+            self.td_np_features = np.array(hf.get('td_features'))
+
+        self.td_features = torch.from_numpy(self.td_np_features)
+
+    def __getitem__(self, index):
+        _id = self.ids[index]
+        ann = self.annotations[_id]
+        img = Image.open(os.path.join(self.img_dir, _id)).convert('RGB')
+        img = self.transform(img)
+        td_features = self.td_features[self.td_img_id2idx[_id]]
+
+        verb, labels = self.encoder.encode(ann)
+        return _id, img, verb, labels, td_features
+
+    def __len__(self):
+        return len(self.annotations)
+
 class imsitu_loader_top_down_verb(data.Dataset):
     def __init__(self, img_dir, annotation_file, encoder, split, transform=None, dataroot='data'):
         self.img_dir = img_dir
