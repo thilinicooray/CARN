@@ -310,6 +310,8 @@ def main():
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
+    print('model param check ', model.v_net)
+
     if args.evaluate:
         top1, top5, val_loss = eval(model, dev_loader, encoder, args.gpuid, write_to_file = True)
 
