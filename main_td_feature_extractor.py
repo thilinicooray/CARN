@@ -5,6 +5,7 @@ import time
 
 from sr import utils, imsitu_scorer, imsitu_scorer_rare, imsitu_loader, imsitu_encoder
 from sr.model import top_down_baseline
+from sr.tools.td_feature_extractor import extract_features
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -293,143 +294,12 @@ def main():
         optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3)
         model_name = 'resume_all'
 
-    else:
-        print('Training from the scratch.')
-        model_name = 'train_full'
-        utils.set_trainable(model, True)
-        optimizer = torch.optim.Adamax([
-            {'params': model.convnet.parameters(), 'lr': 5e-5},
-            {'params': model.role_emb.parameters()},
-            {'params': model.verb_emb.parameters()},
-            {'params': model.query_composer.parameters()},
-            {'params': model.v_att.parameters()},
-            {'params': model.q_net.parameters()},
-            {'params': model.v_net.parameters()},
-            {'params': model.classifier.parameters()}
-        ], lr=1e-3)
 
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-
-    if args.evaluate:
-        top1, top5, val_loss = eval(model, dev_loader, encoder, args.gpuid, write_to_file = True)
-
-        top1_avg = top1.get_average_results_nouns()
-        top5_avg = top5.get_average_results_nouns()
-
-        avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
-                    top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
-        avg_score /= 8
-
-        print ('Dev average :{:.2f} {} {}'.format( avg_score*100,
-                                                   utils.format_dict(top1_avg,'{:.2f}', '1-'),
-                                                   utils.format_dict(top5_avg, '{:.2f}', '5-')))
-
-        #write results to json file
-        role_dict = top1.all_res
-        fail_val_all = top1.value_all_dict
-        pass_val_dict = top1.vall_all_correct
-
-        with open(args.model_saving_name+'_role_pred_data.json', 'w') as fp:
-            json.dump(role_dict, fp, indent=4)
-
-        '''with open(args.model_saving_name+'_fail_val_all.json', 'w') as fp:
-            json.dump(fail_val_all, fp, indent=4)
-
-        with open(args.model_saving_name+'_pass_val_all.json', 'w') as fp:
-            json.dump(pass_val_dict, fp, indent=4)'''
-
-        print('Writing predictions to file completed !')
-
-    elif args.evaluate_visualize:
-        top1, top5, val_loss = eval_output(model, dev_loader, encoder, args.gpuid, write_to_file = True)
-
-
-
-    elif args.evaluate_rare:
-
-        org_train_set = json.load(open(dataset_folder + '/' + args.org_train_file))
-        #compute sparsity statistics
-        verb_role_noun_freq = {}
-        for image,frames in org_train_set.items():
-            v = frames["verb"]
-            items = set()
-            for frame in frames["frames"]:
-                for (r,n) in frame.items():
-                    key = (v,r,n)
-                    items.add(key)
-            for key in items:
-                if key not in verb_role_noun_freq: verb_role_noun_freq[key] = 0
-                verb_role_noun_freq[key] += 1
-                #per role it is the most frequent prediction
-                #and among roles its the most rare
-
-        org_eval_dataset = json.load(open(dataset_folder + '/' + args.org_test_file))
-        image_sparsity = {}
-        for image,frames in org_eval_dataset.items():
-            v = frames["verb"]
-            role_max = {}
-            for frame in frames["frames"]:
-                for (r,n) in frame.items():
-                    key = (v,r,n)
-                    if key not in verb_role_noun_freq: freq = 0
-                    else: freq = verb_role_noun_freq[key]
-                    if r not in role_max or role_max[r] < freq: role_max[r] = freq
-            min_val = -1
-            for (r,f) in role_max.items():
-                if min_val == -1 or f < min_val: min_val = f
-            image_sparsity[image] = min_val
-
-        sparsity_max = 10
-        x = range(0, sparsity_max+1)
-        print ("evaluating images where most rare verb-role-noun in training is x , s.t. {} <= x <= {}".format(0, sparsity_max))
-        n = 0
-        rare_images = []
-        for (k,v) in image_sparsity.items():
-            if v in x:
-                n+=1
-                rare_images.append(k)
-        print ("total images = {}".format(n))
-        with open('rare_images.txt', 'w') as filehandle:
-            for listitem in rare_images:
-                filehandle.write('%s\n' % listitem)
-
-
-        top1, top5, val_loss = eval_rare(model, test_loader, encoder, args.gpuid, image_sparsity)
-
-        top1_avg = top1.get_average_results(range(0, sparsity_max+1))
-        top5_avg = top5.get_average_results(range(0, sparsity_max+1))
-
-        avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
-                    top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
-        avg_score /= 8
-
-        print ('Test rare average :{:.2f} {} {}'.format( avg_score*100,
-                                                   utils.format_dict(top1_avg,'{:.2f}', '1-'),
-                                                   utils.format_dict(top5_avg, '{:.2f}', '5-')))
-
-
-
-    elif args.test:
-        top1, top5, val_loss = eval(model, test_loader, encoder, args.gpuid, write_to_file = True)
-
-        top1_avg = top1.get_average_results_nouns()
-        top5_avg = top5.get_average_results_nouns()
-
-        avg_score = top1_avg["verb"] + top1_avg["value"] + top1_avg["value-all"] + top5_avg["verb"] + \
-                    top5_avg["value"] + top5_avg["value-all"] + top5_avg["value*"] + top5_avg["value-all*"]
-        avg_score /= 8
-
-        print ('Test average :{:.2f} {} {}'.format( avg_score*100,
-                                                    utils.format_dict(top1_avg,'{:.2f}', '1-'),
-                                                    utils.format_dict(top5_avg, '{:.2f}', '5-')))
-
-
-    else:
-
-        print('Model training started!')
-        train(model, train_loader, dev_loader, optimizer, scheduler, n_epoch, args.output_dir, encoder, args.gpuid, clip_norm, model_name, args.model_saving_name,
-              )
-
+    if args.gpuid >= 0:
+        model.cuda()
+    extract_features(model, 'train', train_loader, args.gpuid, len(train_loader)*batch_size)
+    extract_features(model, 'val', dev_loader, args.gpuid, len(dev_loader)*batch_size)
+    extract_features(model, 'test', test_loader, args.gpuid, len(test_loader)*batch_size)
 
 
 
