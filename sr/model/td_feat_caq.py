@@ -15,6 +15,7 @@ from ..lib.classifier import SimpleClassifier
 from ..lib.fc import FCNet
 import torchvision as tv
 from ..utils import cross_entropy_loss
+import time
 
 class vgg16_modified(nn.Module):
     def __init__(self):
@@ -58,8 +59,11 @@ class Top_Down_Baseline(nn.Module):
     def forward(self, v_org, gt_verb, td_feat):
 
         n_heads = 1
-
+        t_cnn = time.time()
         img_features = self.convnet(v_org)
+        after_t_cnn = time.time()
+        print('time for cnn ', after_t_cnn - t_cnn)
+
         batch_size, n_channel, conv_h, conv_w = img_features.size()
 
         img_org = img_features.view(batch_size, -1, conv_h* conv_w)
@@ -92,6 +96,9 @@ class Top_Down_Baseline(nn.Module):
 
         cur_group = td_feat
 
+        t_b4_ggnn =   time.time()
+        print('time before caq :', t_b4_ggnn - after_t_cnn)
+
         neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
 
         withctx = neighbours.contiguous().view(v.size(0)* self.encoder.max_role_count, -1)
@@ -108,6 +115,9 @@ class Top_Down_Baseline(nn.Module):
         #out = q_repr * v_repr
         mfb_iq_eltwise = torch.mul(q_repr, v_repr)
 
+        t_af_caq =   time.time()
+        print('time b4 norm :', t_af_caq - t_b4_ggnn)
+
         mfb_iq_drop = self.Dropout_C(mfb_iq_eltwise)
 
         mfb_iq_resh = mfb_iq_drop.view(batch_size* self.encoder.max_role_count, 1, -1, n_heads)   # N x 1 x 1000 x 5
@@ -117,8 +127,11 @@ class Top_Down_Baseline(nn.Module):
         mfb_l2 = F.normalize(mfb_sign_sqrt)
         out = mfb_l2
 
-        logits = self.classifier(out)
+        t_af_ggnn =   time.time()
+        print('time after norm :', t_af_ggnn - t_af_caq)
 
+        logits = self.classifier(out)
+        print('time after clz :', time.time() - t_af_ggnn)
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
         return role_label_pred

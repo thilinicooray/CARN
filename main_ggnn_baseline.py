@@ -10,7 +10,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4000):
+def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, model_dir, encoder, gpu_mode, clip_norm, model_name, model_saving_name, eval_frequency=4):
     model.train()
     train_loss = 0
     total_steps = 0
@@ -39,6 +39,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
         for i, (_, img, verb, labels) in enumerate(train_loader):
             total_steps += 1
 
+            min_t = time.time()
+
             if gpu_mode >= 0:
                 img = torch.autograd.Variable(img.cuda())
                 verb = torch.autograd.Variable(verb.cuda())
@@ -62,6 +64,8 @@ def train(model, train_loader, dev_loader, optimizer, scheduler, max_epoch, mode
 
             top1.add_point_noun(verb, role_predict, labels)
             top5.add_point_noun(verb, role_predict, labels)
+
+            print('after minibatch ', i, time.time() - min_t)
 
 
             if total_steps % print_freq == 0:
@@ -134,7 +138,7 @@ def eval(model, dev_loader, encoder, gpu_mode, write_to_file = False):
                 top5.add_point_noun(verb, role_predict, labels)
 
             del role_predict, img, verb, labels
-            #break
+            break
         print('eval, time: %.2f' % ( time.time()-t1))
     return top1, top5, 0
 
