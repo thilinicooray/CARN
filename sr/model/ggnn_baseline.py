@@ -87,10 +87,10 @@ class GGNN_Baseline(nn.Module):
 
     def forward(self, v_org, gt_verb):
 
-        t_cnn = time.time()
+        #t_cnn = time.time()
         img_features = self.convnet(v_org)
-        after_t_cnn = time.time()
-        print('time for cnn ', after_t_cnn - t_cnn)
+        #after_t_cnn = time.time()
+        #print('time for cnn ', after_t_cnn - t_cnn)
 
         v = img_features
 
@@ -121,15 +121,15 @@ class GGNN_Baseline(nn.Module):
         mask = self.encoder.get_adj_matrix_noself(gt_verb)
         if torch.cuda.is_available():
             mask = mask.to(torch.device('cuda'))
-        t_b4_ggnn =   time.time()
-        print('time before ggnn :', t_b4_ggnn - after_t_cnn)
+        #t_b4_ggnn =   time.time()
+        #print('time before ggnn :', t_b4_ggnn - after_t_cnn)
 
         out = self.ggnn(input2ggnn, mask)
-        t_af_ggnn =   time.time()
-        print('time after ggnn :', t_af_ggnn - t_b4_ggnn)
+        #t_af_ggnn =   time.time()
+        #print('time after ggnn :', t_af_ggnn - t_b4_ggnn)
 
         logits = self.classifier(out)
-        print('time after clz :', time.time() - t_af_ggnn)
+        #print('time after clz :', time.time() - t_af_ggnn)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
 
