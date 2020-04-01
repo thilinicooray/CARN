@@ -7,6 +7,7 @@ import torch.nn as nn
 import torchvision as tv
 from ..utils import cross_entropy_loss
 import time
+from ..lib.fc import FCNet
 
 class vgg16_modified(nn.Module):
     def __init__(self):
@@ -52,6 +53,9 @@ class GGNN(nn.Module):
         self.W_h = nn.Linear(state_dim, state_dim)
         self.U_h = nn.Linear(state_dim, state_dim)
 
+        self.updated_encoder = FCNet([state_dim * 2, state_dim])
+        self.Dropout_C = nn.Dropout(0.1)
+
     def forward(self, init_node, mask):
 
         hidden_state = init_node
@@ -66,6 +70,10 @@ class GGNN(nn.Module):
             neighbours = self.W_p(neighbours)
             neighbours = torch.sum(neighbours, 2)
             neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
+
+            #combining neighbours with init_node rep
+
+            hidden_state = self.Dropout_C(self.updated_encoder(torch.cat([neighbours,init_node], -1)))
 
             #applying gating
             z_t = torch.sigmoid(self.W_z(neighbours) + self.U_z(hidden_state))
