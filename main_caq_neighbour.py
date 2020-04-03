@@ -221,7 +221,8 @@ def main():
             {'params': model.convnet.parameters(), 'lr': 5e-5},
             {'params': model.role_emb.parameters()},
             {'params': model.verb_emb.parameters()},
-            {'params': model.ggnn.parameters()},
+            {'params': model.ggnn1.parameters()},
+            {'params': model.ggnn2.parameters()},
             {'params': model.classifier.parameters()}
         ], lr=1e-3)
 

@@ -134,12 +134,13 @@ class GNN_new(nn.Module):
         return out
 
 class GGNN_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, ggnn, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, ggnn1, ggnn2, classifier, encoder):
         super(GGNN_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
         self.verb_emb = verb_emb
-        self.ggnn = ggnn
+        self.ggnn1 = ggnn1
+        self.ggnn2 = ggnn2
         self.classifier = classifier
         self.encoder = encoder
 
@@ -184,7 +185,14 @@ class GGNN_Baseline(nn.Module):
         all_nodes = all_nodes.transpose(0,1)
         all_nodes = all_nodes.contiguous().view(batch_size * self.encoder.max_role_count, -1, input2ggnn.size(-1))
 
-        out = self.ggnn(input2ggnn, mask, all_nodes)
+        out = self.ggnn1(input2ggnn, mask, all_nodes)
+
+        all_nodes = out.expand(self.encoder.max_role_count, out.size(0), out.size(-1))
+
+        all_nodes = all_nodes.transpose(0,1)
+        all_nodes = all_nodes.contiguous().view(batch_size * self.encoder.max_role_count, -1, out.size(-1))
+
+        out = self.ggnn2(out, mask, all_nodes)
 
         logits = self.classifier(out)
 
@@ -215,11 +223,13 @@ def build_ggnn_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     covnet = vgg16_modified()
     role_emb = nn.Embedding(n_roles+1, hidden_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, hidden_size)
-    ggnn = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
+    ggnn1 = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
                 n_steps=4)
+    ggnn2 = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
+                    n_steps=4)
     classifier = nn.Sequential(
         nn.Dropout(0.5),
         nn.Linear(hidden_size, num_ans_classes)
     )
 
-    return GGNN_Baseline(covnet, role_emb, verb_emb, ggnn, classifier, encoder)
+    return GGNN_Baseline(covnet, role_emb, verb_emb, ggnn1, ggnn2, classifier, encoder)
