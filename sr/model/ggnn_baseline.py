@@ -76,10 +76,10 @@ class GGNN(nn.Module):
             #hidden_state = self.Dropout_C(self.updated_encoder(torch.cat([neighbours,init_node], -1)))
 
             #applying gating
-            z_t = torch.sigmoid(self.W_z(neighbours) + self.U_z(init_node))
-            r_t = torch.sigmoid(self.W_r(neighbours) + self.U_r(init_node))
-            h_hat_t = torch.tanh(self.W_h(neighbours) + self.U_h(r_t * init_node))
-            hidden_state = (1 - z_t) * init_node + z_t * h_hat_t
+            z_t = torch.sigmoid(self.W_z(neighbours) + self.U_z(hidden_state))
+            r_t = torch.sigmoid(self.W_r(neighbours) + self.U_r(hidden_state))
+            h_hat_t = torch.tanh(self.W_h(neighbours) + self.U_h(r_t * hidden_state))
+            hidden_state = (1 - z_t) * hidden_state + z_t * h_hat_t
 
         return hidden_state
 
