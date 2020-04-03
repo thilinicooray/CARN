@@ -99,7 +99,9 @@ class GNN_new(nn.Module):
         self.n_steps = n_steps
 
         #neighbour projection
-        self.neighbour_attention = MultiHeadedAttention(4, state_dim, dropout=0.1)
+        self.W_p = nn.Linear(state_dim, state_dim)
+        #global projection
+        self.W_g = nn.Linear(state_dim, state_dim)
         self.v_att = Attention(state_dim, state_dim, state_dim)
         self.q_net = FCNet([state_dim, state_dim ])
         self.v_net = FCNet([state_dim, state_dim ])
@@ -110,11 +112,16 @@ class GNN_new(nn.Module):
         hidden_state = current_nodes
 
         # calculating neighbour info
-        cur_group = hidden_state.contiguous().view(mask.size(0), 6, -1)
+        neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
+        neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
+        neighbours = neighbours.transpose(0,1)
 
-        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+        neighbours = neighbours * mask.unsqueeze(-1)
+        neighbours = self.W_p(neighbours)
+        neighbours = torch.sum(neighbours, 2)
+        neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
 
-        neighbours = neighbours.contiguous().view(mask.size(0)* 6, -1)
+        global_source = self.W_g(global_source)
 
         att = self.v_att(global_source, neighbours)
         v_emb = (att * global_source).sum(1)
