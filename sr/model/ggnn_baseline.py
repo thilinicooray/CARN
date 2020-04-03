@@ -167,7 +167,7 @@ def build_ggnn_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     role_emb = nn.Embedding(n_roles+1, hidden_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, hidden_size)
     ggnn = GGNN(state_dim = hidden_size, n_node=encoder.max_role_count,
-                n_steps=4)
+                n_steps=1)
     classifier = nn.Sequential(
         nn.Dropout(0.5),
         nn.Linear(hidden_size, num_ans_classes)
