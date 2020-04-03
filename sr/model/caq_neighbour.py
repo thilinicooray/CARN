@@ -6,6 +6,9 @@ GGNN implementation adapted from https://github.com/chingyaoc/ggnn.pytorch
 import torch
 import torch.nn as nn
 import torchvision as tv
+import torch.nn.functional as F
+import math
+import copy
 
 
 from ..lib.attention import Attention
@@ -29,6 +32,58 @@ class vgg16_modified(nn.Module):
         y = self.resize(self.vgg_classifier(features.view(-1, 512*7*7)))
         return y
 
+def attention(query, key, value, mask=None, dropout=None):
+    "Compute 'Scaled Dot Product Attention'"
+    d_k = query.size(-1)
+    scores = torch.matmul(query, key.transpose(-2, -1)) \
+             / math.sqrt(d_k)
+
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+    p_attn = F.softmax(scores, dim = -1)
+    if dropout is not None:
+        p_attn = dropout(p_attn)
+
+    return torch.matmul(p_attn, value), p_attn , torch.mean(scores,1)
+
+class MultiHeadedAttention(nn.Module):
+    def __init__(self, h, d_model, dropout=0.1):
+        "Take in model size and number of heads."
+        super(MultiHeadedAttention, self).__init__()
+        assert d_model % h == 0
+        # We assume d_v always equals d_k
+        self.d_k = d_model // h
+        self.h = h
+        self.linears = self.clones(nn.Linear(d_model, d_model), 4)
+        self.attn = None
+        self.dropout = nn.Dropout(p=dropout)
+
+    def clones(self, module, N):
+        "Produce N identical layers."
+        return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+
+    def forward(self, query, key, value, mask=None):
+        "Implements Figure 2"
+        if mask is not None:
+            # Same mask applied to all h heads.
+            mask = mask.unsqueeze(1)
+        nbatches = query.size(0)
+
+        # 1) Do all the linear projections in batch from d_model => h x d_k
+        query, key, value = \
+            [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+             for l, x in zip(self.linears, (query, key, value))]
+
+        # 2) Apply attention on all the projected vectors in batch.
+        x, self.attn, mean_scores = attention(query, key, value, mask=mask,
+                                              dropout=self.dropout)
+
+        # 3) "Concat" using a view and apply a final linear.
+        x = x.transpose(1, 2).contiguous() \
+            .view(nbatches, -1, self.h * self.d_k)
+
+        return self.linears[-1](x), torch.mean(self.attn, 1)
+
 
 class GNN_new(nn.Module):
     """
@@ -44,7 +99,7 @@ class GNN_new(nn.Module):
         self.n_steps = n_steps
 
         #neighbour projection
-        self.W_p = nn.Linear(state_dim, state_dim)
+        self.neighbour_attention = MultiHeadedAttention(4, state_dim, dropout=0.1)
         self.v_att = Attention(state_dim, state_dim, state_dim)
         self.q_net = FCNet([state_dim, state_dim ])
         self.v_net = FCNet([state_dim, state_dim ])
@@ -55,14 +110,11 @@ class GNN_new(nn.Module):
         hidden_state = current_nodes
 
         # calculating neighbour info
-        neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
-        neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
-        neighbours = neighbours.transpose(0,1)
+        cur_group = hidden_state.contiguous().view(mask.size(0), 6, -1)
 
-        neighbours = neighbours * mask.unsqueeze(-1)
-        neighbours = self.W_p(neighbours)
-        neighbours = torch.sum(neighbours, 2)
-        neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
+        neighbours, _ = self.neighbour_attention(cur_group, cur_group, cur_group, mask=mask)
+
+        neighbours = neighbours.contiguous().view(mask.size(0)* 6, -1)
 
         att = self.v_att(global_source, neighbours)
         v_emb = (att * global_source).sum(1)
