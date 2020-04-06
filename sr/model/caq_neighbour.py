@@ -131,7 +131,7 @@ class GNN_new(nn.Module):
         img_feature = self.Linear_neighbourproj(neighbours)      # img_feature (batch, 5000)
         iq = torch.mul(data_out, img_feature)
         iq = F.dropout(iq, 0.1, training=self.training)
-        iq = iq.view(-1, 1, self.out_features, 5)
+        iq = iq.view(-1, 1, self.state_dim, 5)
         iq = torch.squeeze(torch.sum(iq, 3))                        # sum pool
         iq = torch.sqrt(F.relu(iq)) - torch.sqrt(F.relu(-iq))       # signed sqrt
         out = F.normalize(iq)
