@@ -103,8 +103,8 @@ class GNN_new(nn.Module):
         self.W_p = nn.Linear(state_dim, state_dim)
 
         self.JOINT_EMB_SIZE = 5 * state_dim
-        self.Linear_nodeproj = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
-        self.Linear_neighbourproj = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
+        self.Linear_nodeproj = FCNet([state_dim, self.JOINT_EMB_SIZE])
+        self.Linear_neighbourproj = FCNet([state_dim, self.JOINT_EMB_SIZE])
 
         #global projection
         '''self.W_g = nn.Linear(state_dim, state_dim)
