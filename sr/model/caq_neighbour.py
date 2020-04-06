@@ -98,13 +98,19 @@ class GNN_new(nn.Module):
         self.n_node = n_node
         self.n_steps = n_steps
 
+
         #neighbour projection
         self.W_p = nn.Linear(state_dim, state_dim)
+
+        self.JOINT_EMB_SIZE = 5 * state_dim
+        self.Linear_nodeproj = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
+        self.Linear_neighbourproj = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
+
         #global projection
-        self.W_g = nn.Linear(state_dim, state_dim)
+        '''self.W_g = nn.Linear(state_dim, state_dim)
         self.v_att = Attention(state_dim, state_dim, state_dim)
         self.q_net = FCNet([state_dim, state_dim ])
-        self.v_net = FCNet([state_dim, state_dim ])
+        self.v_net = FCNet([state_dim, state_dim ])'''
 
 
     def forward(self, current_nodes, mask, global_source):
@@ -121,26 +127,24 @@ class GNN_new(nn.Module):
         neighbours = torch.sum(neighbours, 2)
         neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
 
-        global_source = self.W_g(global_source)
-
-        att = self.v_att(global_source, neighbours)
-        v_emb = (att * global_source).sum(1)
-
-        v_repr = self.v_net(v_emb)
-        q_repr = self.q_net(neighbours)
-
-        out = v_repr * q_repr
+        data_out = self.Linear_nodeproj(hidden_state)                   # data_out (batch, 5000)
+        img_feature = self.Linear_neighbourproj(neighbours)      # img_feature (batch, 5000)
+        iq = torch.mul(data_out, img_feature)
+        iq = F.dropout(iq, 0.1, training=self.training)
+        iq = iq.view(-1, 1, self.out_features, 5)
+        iq = torch.squeeze(torch.sum(iq, 3))                        # sum pool
+        iq = torch.sqrt(F.relu(iq)) - torch.sqrt(F.relu(-iq))       # signed sqrt
+        out = F.normalize(iq)
 
         return out
 
 class GGNN_Baseline(nn.Module):
-    def __init__(self, convnet, role_emb, verb_emb, ggnn1, ggnn2, classifier, encoder):
+    def __init__(self, convnet, role_emb, verb_emb, ggnn, classifier, encoder):
         super(GGNN_Baseline, self).__init__()
         self.convnet = convnet
         self.role_emb = role_emb
         self.verb_emb = verb_emb
-        self.ggnn1 = ggnn1
-        self.ggnn2 = ggnn2
+        self.ggnn1 = ggnn
         self.classifier = classifier
         self.encoder = encoder
 
@@ -187,13 +191,6 @@ class GGNN_Baseline(nn.Module):
 
         out = self.ggnn1(input2ggnn, mask, all_nodes)
 
-        all_nodes = out.expand(self.encoder.max_role_count, out.size(0), out.size(-1))
-
-        all_nodes = all_nodes.transpose(0,1)
-        all_nodes = all_nodes.contiguous().view(batch_size * self.encoder.max_role_count, -1, out.size(-1))
-
-        out = self.ggnn2(out, mask, all_nodes)
-
         logits = self.classifier(out)
 
         role_label_pred = logits.contiguous().view(v.size(0), self.encoder.max_role_count, -1)
@@ -225,11 +222,9 @@ def build_ggnn_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     verb_emb = nn.Embedding(n_verbs, hidden_size)
     ggnn1 = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
                 n_steps=4)
-    ggnn2 = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
-                    n_steps=4)
     classifier = nn.Sequential(
         nn.Dropout(0.5),
         nn.Linear(hidden_size, num_ans_classes)
     )
 
-    return GGNN_Baseline(covnet, role_emb, verb_emb, ggnn1, ggnn2, classifier, encoder)
+    return GGNN_Baseline(covnet, role_emb, verb_emb, ggnn1, classifier, encoder)
