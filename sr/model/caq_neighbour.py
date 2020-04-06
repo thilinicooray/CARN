@@ -113,30 +113,32 @@ class GNN_new(nn.Module):
         self.v_net = FCNet([state_dim, state_dim ])'''
 
 
-    def forward(self, current_nodes, mask, global_source):
+    def forward(self, current_nodes, mask):
 
         hidden_state = current_nodes
 
-        # calculating neighbour info
-        neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
-        neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
-        neighbours = neighbours.transpose(0,1)
+        for t in range(self.n_steps):
 
-        neighbours = neighbours * mask.unsqueeze(-1)
-        neighbours = self.W_p(neighbours)
-        neighbours = torch.sum(neighbours, 2)
-        neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
+            # calculating neighbour info
+            neighbours = hidden_state.contiguous().view(mask.size(0), self.n_node, -1)
+            neighbours = neighbours.expand(self.n_node, neighbours.size(0), neighbours.size(1), neighbours.size(2))
+            neighbours = neighbours.transpose(0,1)
 
-        data_out = self.Linear_nodeproj(hidden_state)                   # data_out (batch, 5000)
-        img_feature = self.Linear_neighbourproj(neighbours)      # img_feature (batch, 5000)
-        iq = torch.mul(data_out, img_feature)
-        iq = F.dropout(iq, 0.1, training=self.training)
-        iq = iq.view(-1, 1, self.state_dim, 5)
-        iq = torch.squeeze(torch.sum(iq, 3))                        # sum pool
-        iq = torch.sqrt(F.relu(iq)) - torch.sqrt(F.relu(-iq))       # signed sqrt
-        out = F.normalize(iq)
+            neighbours = neighbours * mask.unsqueeze(-1)
+            neighbours = self.W_p(neighbours)
+            neighbours = torch.sum(neighbours, 2)
+            neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)
 
-        return out
+            data_out = self.Linear_nodeproj(hidden_state)                   # data_out (batch, 5000)
+            img_feature = self.Linear_neighbourproj(neighbours)      # img_feature (batch, 5000)
+            iq = torch.mul(data_out, img_feature)
+            iq = F.dropout(iq, 0.1, training=self.training)
+            iq = iq.view(-1, 1, self.state_dim, 5)
+            iq = torch.squeeze(torch.sum(iq, 3))                        # sum pool
+            iq = torch.sqrt(F.relu(iq)) - torch.sqrt(F.relu(-iq))       # signed sqrt
+            hidden_state = F.normalize(iq)
+
+        return hidden_state
 
 class GGNN_Baseline(nn.Module):
     def __init__(self, convnet, role_emb, verb_emb, ggnn, classifier, encoder):
@@ -184,12 +186,7 @@ class GGNN_Baseline(nn.Module):
         if torch.cuda.is_available():
             mask = mask.to(torch.device('cuda'))
 
-        all_nodes = input2ggnn.expand(self.encoder.max_role_count, input2ggnn.size(0), input2ggnn.size(-1))
-
-        all_nodes = all_nodes.transpose(0,1)
-        all_nodes = all_nodes.contiguous().view(batch_size * self.encoder.max_role_count, -1, input2ggnn.size(-1))
-
-        out = self.ggnn(input2ggnn, mask, all_nodes)
+        out = self.ggnn(input2ggnn, mask)
 
         logits = self.classifier(out)
 
