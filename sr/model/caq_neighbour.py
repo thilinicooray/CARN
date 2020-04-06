@@ -144,7 +144,7 @@ class GGNN_Baseline(nn.Module):
         self.convnet = convnet
         self.role_emb = role_emb
         self.verb_emb = verb_emb
-        self.ggnn1 = ggnn
+        self.ggnn = ggnn
         self.classifier = classifier
         self.encoder = encoder
 
@@ -189,7 +189,7 @@ class GGNN_Baseline(nn.Module):
         all_nodes = all_nodes.transpose(0,1)
         all_nodes = all_nodes.contiguous().view(batch_size * self.encoder.max_role_count, -1, input2ggnn.size(-1))
 
-        out = self.ggnn1(input2ggnn, mask, all_nodes)
+        out = self.ggnn(input2ggnn, mask, all_nodes)
 
         logits = self.classifier(out)
 
@@ -220,11 +220,11 @@ def build_ggnn_baseline(n_roles, n_verbs, num_ans_classes, encoder):
     covnet = vgg16_modified()
     role_emb = nn.Embedding(n_roles+1, hidden_size, padding_idx=n_roles)
     verb_emb = nn.Embedding(n_verbs, hidden_size)
-    ggnn1 = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
+    ggnn = GNN_new(state_dim = hidden_size, n_node=encoder.max_role_count,
                 n_steps=4)
     classifier = nn.Sequential(
         nn.Dropout(0.5),
         nn.Linear(hidden_size, num_ans_classes)
     )
 
-    return GGNN_Baseline(covnet, role_emb, verb_emb, ggnn1, classifier, encoder)
+    return GGNN_Baseline(covnet, role_emb, verb_emb, ggnn, classifier, encoder)
