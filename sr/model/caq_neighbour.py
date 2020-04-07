@@ -106,6 +106,9 @@ class GNN_new(nn.Module):
         self.Linear_nodeproj = FCNet([state_dim, self.JOINT_EMB_SIZE])
         self.Linear_neighbourproj = FCNet([state_dim, self.JOINT_EMB_SIZE])
 
+        self.Linear_nodeproj1 = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
+        self.Linear_neighbourproj1 = FCNet(state_dim, self.JOINT_EMB_SIZE)
+
         #global projection
         '''self.W_g = nn.Linear(state_dim, state_dim)
         self.v_att = Attention(state_dim, state_dim, state_dim)
@@ -134,12 +137,35 @@ class GNN_new(nn.Module):
             conv1 = conv1.contiguous().view(-1, neighbours.size(-1))
             conv2 = conv2.contiguous().view(-1, neighbours.size(-1))
 
-            print('try to see 1:', conv1[:12,:5])
-            print('try to see 2:', conv2[:12,:5])
+            data_out = self.Linear_nodeproj1(conv1)                   # data_out (batch, 5000)
+            img_feature = self.Linear_neighbourproj1(conv2)      # img_feature (batch, 5000)
+            iq = torch.mul(data_out, img_feature)
+            iq = F.dropout(iq, 0.1, training=self.training)
+            iq = iq.view(-1, 1, self.state_dim, 5)
+            iq = torch.squeeze(torch.sum(iq, 3))                        # sum pool
+            iq = torch.sqrt(F.relu(iq)) - torch.sqrt(F.relu(-iq))       # signed sqrt
+            all_neighbour_bilin = F.normalize(iq)
+
+            print('0,0', all_neighbour_bilin[0,:4])
+            print('0,1', all_neighbour_bilin[1,:4])
+            print('6,0', all_neighbour_bilin[6,:4])
+            print('6,1', all_neighbour_bilin[7,:4])
+
+            all_neighbour_bilin = all_neighbour_bilin.contiguous().view(neighbours.size(0), self.n_node, self.n_node, neighbours.size(-1))
+            print('val 0,0', all_neighbour_bilin[0,0,0,:4 ])
+            print('val 0,1', all_neighbour_bilin[0,0,1,:4 ])
+            print('val 1,0', all_neighbour_bilin[0,1,0,:4 ])
+            print('val 1,1', all_neighbour_bilin[0,1,1,:4 ])
+
+
+
+            all_neighbour_bilin = all_neighbour_bilin * mask.unsqueeze(-1)
+            all_neighbour_bilin = torch.sum(all_neighbour_bilin, 2)
+            all_neighbour_bilin = all_neighbour_bilin.contiguous().view(mask.size(0)*self.n_node, -1)
 
 
             data_out = self.Linear_nodeproj(hidden_state)                   # data_out (batch, 5000)
-            img_feature = self.Linear_neighbourproj(neighbours)      # img_feature (batch, 5000)
+            img_feature = self.Linear_neighbourproj(all_neighbour_bilin)      # img_feature (batch, 5000)
             iq = torch.mul(data_out, img_feature)
             iq = F.dropout(iq, 0.1, training=self.training)
             iq = iq.view(-1, 1, self.state_dim, 5)
