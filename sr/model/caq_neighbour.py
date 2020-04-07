@@ -146,17 +146,8 @@ class GNN_new(nn.Module):
             iq = torch.sqrt(F.relu(iq)) - torch.sqrt(F.relu(-iq))       # signed sqrt
             all_neighbour_bilin = F.normalize(iq)
 
-            print('0,0', all_neighbour_bilin[0,:4])
-            print('0,1', all_neighbour_bilin[1,:4])
-            print('6,0', all_neighbour_bilin[6,:4])
-            print('6,1', all_neighbour_bilin[7,:4])
 
             all_neighbour_bilin = all_neighbour_bilin.contiguous().view(neighbours.size(0), self.n_node, self.n_node, neighbours.size(-1))
-            print('val 0,0', all_neighbour_bilin[0,0,0,:4 ])
-            print('val 0,1', all_neighbour_bilin[0,0,1,:4 ])
-            print('val 1,0', all_neighbour_bilin[0,1,0,:4 ])
-            print('val 1,1', all_neighbour_bilin[0,1,1,:4 ])
-
 
 
             all_neighbour_bilin = all_neighbour_bilin * mask.unsqueeze(-1)
