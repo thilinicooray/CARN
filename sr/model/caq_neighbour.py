@@ -107,7 +107,7 @@ class GNN_new(nn.Module):
         self.Linear_neighbourproj = FCNet([state_dim, self.JOINT_EMB_SIZE])
 
         self.Linear_nodeproj1 = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
-        self.Linear_neighbourproj1 = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
+        #self.Linear_neighbourproj1 = nn.Linear(state_dim, self.JOINT_EMB_SIZE)
 
         #global projection
         '''self.W_g = nn.Linear(state_dim, state_dim)
@@ -138,7 +138,7 @@ class GNN_new(nn.Module):
             conv2 = conv2.contiguous().view(-1, neighbours.size(-1))
 
             data_out = self.Linear_nodeproj1(conv1)                   # data_out (batch, 5000)
-            img_feature = self.Linear_neighbourproj1(conv2)      # img_feature (batch, 5000)
+            img_feature = self.Linear_nodeproj1(conv2)      # img_feature (batch, 5000)
             iq = torch.mul(data_out, img_feature)
             iq = F.dropout(iq, 0.1, training=self.training)
             iq = iq.view(-1, 1, self.state_dim, 5)
