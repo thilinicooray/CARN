@@ -129,8 +129,8 @@ class GNN_new(nn.Module):
             neighbours = torch.sum(neighbours, 2)
             neighbours = neighbours.contiguous().view(mask.size(0)*self.n_node, -1)'''
 
-            conv1 = neighbours.unsqueeze(1).expand(neighbours.size(0), self.n_node, self.n_node, neighbours.size(-1))
-            conv2 = neighbours.unsqueeze(2).expand(neighbours.size(0), self.n_node, self.n_node, neighbours.size(-1))
+            conv1 = neighbours.unsqueeze(2).expand(neighbours.size(0), self.n_node, self.n_node, neighbours.size(-1))
+            conv2 = neighbours.unsqueeze(1).expand(neighbours.size(0), self.n_node, self.n_node, neighbours.size(-1))
             conv1 = conv1.contiguous().view(-1, neighbours.size(-1))
             conv2 = conv2.contiguous().view(-1, neighbours.size(-1))
 
